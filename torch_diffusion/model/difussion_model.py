@@ -3,13 +3,21 @@ import torch
 from torch_diffusion.model.context_unit import ContextUnet
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from dataclasses import dataclass
+
+
+@dataclass
+class DiffusionModuleConfig:
+    learning_rate: float = 0.001
 
 
 class DiffusionModule(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, config: DiffusionModuleConfig):
         super().__init__()
         self.model = ContextUnet(in_channels=3)
-        self.learning_rate = 0.001
+        self.learning_rate = (
+            0.001 if config.learning_rate is None else config.learning_rate
+        )
         self.val_loss = []
         # diffusion hyperparameters
         self.timesteps = 500
@@ -17,6 +25,8 @@ class DiffusionModule(pl.LightningModule):
         self.beta2 = 0.02
         self.example_input_array = [torch.Tensor(16, 3, 192, 128), torch.Tensor(16, 1)]
         self.val_loss = []
+        self.pil = {}
+        self.save_hyperparameters()
 
     def setup(self, stage=None):
         # construct DDPM noise schedule
@@ -85,26 +95,37 @@ class DiffusionModule(pl.LightningModule):
 
         predictions = self(x_pert, t / self.timesteps)
 
+        self.log_images(batch_idx, stage, x, tensorboard, t, x_pert, predictions)
+
+        loss = F.mse_loss(predictions, noise)
+        tensorboard[f"{stage}_loss"].append(loss)
+        return loss
+
+    def log_images(self, batch_idx, stage, x, tensorboard, t, x_pert, predictions):
         if tensorboard.exists(f"{stage}_image_pred") and batch_idx == 0:
             del tensorboard[f"{stage}_image_pred"]
             del tensorboard[f"{stage}_image_truth"]
             del tensorboard[f"{stage}_image_perturb"]
 
         if batch_idx % 10 == 0:
+            pred_pil = self.to_pil(predictions[0])
+            truth_pil = self.to_pil(x[0])
+            perturb_pil = self.to_pil(x_pert[0])
+
             tensorboard[f"{stage}_image_pred"].append(
-                self.to_pil(predictions[0]),
+                pred_pil,
                 name=f"t: {t[0]/self.timesteps}",
             )
             tensorboard[f"{stage}_image_truth"].append(
-                self.to_pil(x[0]), name=f"t: {t[0]/self.timesteps}"
+                truth_pil, name=f"t: {t[0]/self.timesteps}"
             )
             tensorboard[f"{stage}_image_perturb"].append(
-                self.to_pil(x_pert[0]), name=f"t: {t[0]/self.timesteps}"
+                perturb_pil, name=f"t: {t[0]/self.timesteps}"
             )
-
-        loss = F.mse_loss(predictions, noise)
-        tensorboard[f"{stage}_loss"].append(loss)
-        return loss
+            if stage == "val":
+                self.pil["pred"] = pred_pil
+                self.pil["truth"] = truth_pil
+                self.pil["perturb"] = perturb_pil
 
     def _denoise_ddim(self, x, t, t_prev, pred_noise):
         ab = self.ab_t[t]
