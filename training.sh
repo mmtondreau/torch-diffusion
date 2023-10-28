@@ -14,7 +14,7 @@ sudo docker run -it --rm \
 	-e NEPTUNE_API_KEY="${NEPTUNE_API_KEY}" \
 	-e SLACK_TOKEN="${SLACK_TOKEN}" \
 	-e SLACK_CHANNEL_MONITORING="${SLACK_CHANNEL_MONITORING}" \
-	-v ${MOUNT}:/root/workspace \
+	-v ${MOUNT}:/var/torch \
 	$IMAGE 
 
 

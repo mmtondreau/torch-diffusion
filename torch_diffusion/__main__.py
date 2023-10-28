@@ -21,9 +21,9 @@ from datetime import datetime
 torch.set_float32_matmul_precision("medium")
 
 
-def setup_logger():
+def setup_logger(cfg: DictConfig):
     return NeptuneLogger(
-        api_key=os.environ["NEPTUNE_API_KEY"],
+        api_key=cfg.neptune.api_key,
         project="mmtondreau/diffusion",
         name="diffusion",
     )
@@ -70,7 +70,7 @@ def training(cfg: DictConfig):
             )
         )
     trainer = pl.Trainer(
-        logger=setup_logger(),
+        logger=setup_logger(cfg),
         devices=1,
         accelerator="gpu",
         max_epochs=100,

@@ -1,7 +1,7 @@
 FROM registry.tonberry.org/tonberry/torch:1.0
 ARG PYTHON_MODULE=torch_diffusion
 RUN conda run -n torch pip install neptune slack-sdk hydra-core
+WORKDIR /var/torch/
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "torch", \
-            "python", "-m", "torch_diffusion", \
-            "training.batch_size=32", \
-            "training.num_workers=4"] 
+            "python", "-m", "torch_diffusion"] 
+#ENTRYPOINT ["ls", "-l"]

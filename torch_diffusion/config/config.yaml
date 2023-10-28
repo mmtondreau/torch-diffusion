@@ -1,7 +1,9 @@
 slack:
-  token: ${oc.env:SLACK_TOKEN, "dummy"}
+  token: ${oc.env:SLACK_TOKEN, null}
   channels:
-    monitoring: ${oc.env:SLACK_CHANNELS_MONITORING, "dummy"}
+    monitoring: ${oc.env:SLACK_CHANNELS_MONITORING, null}
+neptune:
+  api_key: ${oc.env:NEPTUNE_API_KEY, null}
 training:
   batch_size: ${oc.env:TRAINING_BATCH_SIZE, 32}
   learning_rate: ${oc.env:TRAINING_LEARNING_RATE, 0.001}

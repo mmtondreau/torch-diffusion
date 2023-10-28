@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: diffusion-job
+spec:
+  template:
+    spec:
+      nodeSelector:
+        gpu: "true"
+      containers:
+      - image: registry.tonberry.org/tonberry/diffusion-training:latest
+        name: diffusion-job
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "6"
+          requests:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+            cpu: "4"
+        env: 
+        - name: TRAINING_BATCH_SIZE
+          value: "32"
+        - name: TRAINING_NUM_WORKERS
+          value: "2"
+        - name: NEPTUNE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: neptune-api-key
+              key: NEPTUNE_API_KEY
+        - name: SLACK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-token
+              key: SLACK_TOKEN
+        - name: SLACK_CHANNELS_MONITORING
+          valueFrom:
+            secretKeyRef:
+              name: slack-channels-monitoring
+              key: SLACK_CHANNELS_MONITORING
+        volumeMounts:
+        - name: diffusion-job-persistent-storage
+          mountPath: /var/torch/
+        - name: dshm
+          mountPath: /dev/shm
+      volumes:
+      - name: diffusion-job-persistent-storage
+        persistentVolumeClaim:
+          claimName: diffusion-job-claim
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 8Gi
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Never # Ensures that the Pod does not restart on failure
+  # Specify backoffLimit to control the number of retries
+  backoffLimit: 2
