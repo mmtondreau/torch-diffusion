@@ -1,0 +1,14 @@
+slack:
+  token: ${oc.env:SLACK_TOKEN, "dummy"}
+  channels:
+    monitoring: ${oc.env:SLACK_CHANNELS_MONITORING, "dummy"}
+training:
+  batch_size: ${oc.env:TRAINING_BATCH_SIZE, 32}
+  learning_rate: ${oc.env:TRAINING_LEARNING_RATE, 0.001}
+  num_workers: ${oc.env:TRAINING_NUM_WORKERS, 2}
+  checkpoint_dir: ${oc.env:TRAINING_CHECKPOINT_DIR, "./model_checkpoints" } 
+  checkpoint: ${oc.env:TRAINING_CHECKPOINT_DIR, "./model_checkpoints/model.14.ckpt" } 
+preprocess:
+  enabled: ${oc.env:PREPROCESS_ENABLED, False}
+  output_dir: ${oc.env:PREPROCESS_OUTPUT_DIR, "./preprocessed_data"}
+  input_dir: ${oc.env:PREPROCESS_INPUT_DIR, "../data"}

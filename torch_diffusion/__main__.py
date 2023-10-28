@@ -14,6 +14,9 @@ import torch
 import sys
 import argparse
 from dataclasses import dataclass
+from omegaconf import DictConfig, OmegaConf
+import hydra
+from datetime import datetime
 
 torch.set_float32_matmul_precision("medium")
 
@@ -26,92 +29,30 @@ def setup_logger():
     )
 
 
-MODEL_CKPT_FILE = "{epoch}-{val_loss:.2f}"
+MODEL_CKPT_FILE = datetime.now().isoformat()
 MODEL_CKPT_DIRPATH = "model_checkpoints/"
 
 
-@dataclass
-class TorchDiffusionArgs:
-    checkpoint: str = None
-    learning_rate: float = None
-    batch_size: int = None
-    num_workers: int = None
-    preprocess: bool = None
-    preprocess_output: str = None
-    preprocess_input: str = None
-
-
-def parse_args() -> TorchDiffusionArgs:
-    parser = argparse.ArgumentParser(prog="torch_diffusion")
-    parser.add_argument(
-        "-c", "--checkpoint", help="The model checkpoint to restore from"
-    )
-    parser.add_argument(
-        "-l",
-        "--learning_rate",
-        default=0.001,
-        type=float,
-        help="The learning rate to use for training",
-    )
-    parser.add_argument(
-        "-b",
-        "--batch_size",
-        default=32,
-        type=int,
-        help="The mini-batch size to utilize",
-    )
-    parser.add_argument(
-        "-n",
-        "--num_workers",
-        default=1,
-        type=int,
-        help="The number of workers for processing data",
-    )
-    parser.add_argument(
-        "-p",
-        "--preprocess",
-        help="Only run the processing of the immages",
-        action="store_true",
-        default=False,
-    )
-    parser.add_argument(
-        "-o",
-        "--preprocess_output",
-        help="The directroy to output the preprocessed images",
-        default="./preprocessed_data",
-    )
-    parser.add_argument(
-        "-i",
-        "--preprocess_input",
-        help="The directroy to take unpreprocessed images from",
-        default="../data",
-    )
-    return parser.parse_args(namespace=TorchDiffusionArgs())
-    # args = parser.parse_args()
-    # return TorchDiffusionArgs(
-    #     checkpoint=args.checkpoint,
-    #     learning_rate=float(args.learning_rate),
-    #     batch_size=int(args.batch_size),
-    #     preprocess=args.preprocess,
-    #     preprocess_output=args.preprocess_output,
-    #     preprocess_input=args.preprocess_input,
-    # )
-
-
-def training(args: TorchDiffusionArgs):
+def training(cfg: DictConfig):
     dm = ImageDataModule(
-        batch_size=args.batch_size, num_workers=args.num_workers, val_split=0.2
+        batch_size=int(cfg.training.batch_size),
+        num_workers=int(cfg.training.num_workers),
+        val_split=0.2,
     )
 
-    if args.checkpoint is not None:
-        print(f"Found checkpoint file {args.checkpoint}, loading...")
+    if cfg.training.checkpoint_dir is not None:
+        print(f"Found checkpoint file {cfg.training.checkpoint}, loading...")
         model = DiffusionModule.load_from_checkpoint(
-            args.checkpoint,
-            config=DiffusionModuleConfig(learning_rate=args.learning_rate),
+            cfg.training.checkpoint,
+            config=DiffusionModuleConfig(
+                learning_rate=float(cfg.training.learning_rate)
+            ),
         )
     else:
         model = DiffusionModule(
-            config=DiffusionModuleConfig(learning_rate=args.learning_rate)
+            config=DiffusionModuleConfig(
+                learning_rate=float(cfg.training.learning_rate)
+            )
         )
     trainer = pl.Trainer(
         logger=setup_logger(),
@@ -136,11 +77,15 @@ def training(args: TorchDiffusionArgs):
     trainer.fit(model, datamodule=dm)
 
 
-if __name__ == "__main__":
-    args = parse_args()
-    if args.preprocess:
+@hydra.main(config_name="config.yaml", config_path="config", version_base=None)
+def main(cfg):
+    if cfg.preprocess == "True":
         PreProcessor(
-            data_dir=args.preprocess_input, output_dir=args.preprocess_output
+            data_dir=cfg.preprocess.input_dir, output_dir=cfg.preprocess.output_dir
         ).process()
     else:
-        training(args)
+        training(cfg)
+
+
+if __name__ == "__main__":
+    main()
