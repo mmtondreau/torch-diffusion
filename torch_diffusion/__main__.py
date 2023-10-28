@@ -7,7 +7,7 @@ from torch_diffusion.data.preprocessor import PreProcessor
 from torch_diffusion.model.difussion_model import DiffusionModule, DiffusionModuleConfig
 import os
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, BatchSizeFinder
 import neptune
 from lightning.pytorch.loggers import NeptuneLogger
 import torch
@@ -35,6 +35,7 @@ class TorchDiffusionArgs:
     checkpoint: str = None
     learning_rate: float = None
     batch_size: int = None
+    num_workers: int = None
     preprocess: bool = None
     preprocess_output: str = None
     preprocess_input: str = None
@@ -58,6 +59,13 @@ def parse_args() -> TorchDiffusionArgs:
         default=32,
         type=int,
         help="The mini-batch size to utilize",
+    )
+    parser.add_argument(
+        "-n",
+        "--num_workers",
+        default=1,
+        type=int,
+        help="The number of workers for processing data",
     )
     parser.add_argument(
         "-p",
@@ -91,7 +99,9 @@ def parse_args() -> TorchDiffusionArgs:
 
 
 def training(args: TorchDiffusionArgs):
-    dm = ImageDataModule(batch_size=args.batch_size, num_workers=2, val_split=0.2)
+    dm = ImageDataModule(
+        batch_size=args.batch_size, num_workers=args.num_workers, val_split=0.2
+    )
 
     if args.checkpoint is not None:
         print(f"Found checkpoint file {args.checkpoint}, loading...")
@@ -119,6 +129,7 @@ def training(args: TorchDiffusionArgs):
                 dirpath=MODEL_CKPT_DIRPATH,
                 enable_version_counter=True,
             ),
+            # BatchSizeFinder(mode="binsearch", init_val=args.batch_size),
             SlackAlert(config=Config(), model_name="diffusion"),
         ],
     )

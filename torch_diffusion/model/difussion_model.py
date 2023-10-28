@@ -102,30 +102,33 @@ class DiffusionModule(pl.LightningModule):
         return loss
 
     def log_images(self, batch_idx, stage, x, tensorboard, t, x_pert, predictions):
+        image_names = [f"pred", f"truth", f"perturb"]
         if tensorboard.exists(f"{stage}_image_pred") and batch_idx == 0:
-            del tensorboard[f"{stage}_image_pred"]
-            del tensorboard[f"{stage}_image_truth"]
-            del tensorboard[f"{stage}_image_perturb"]
+            self.clear_image_logs(stage, tensorboard)
+            self.pil = {name: [] for name in image_names}
 
         if batch_idx % 10 == 0:
-            pred_pil = self.to_pil(predictions[0])
-            truth_pil = self.to_pil(x[0])
-            perturb_pil = self.to_pil(x_pert[0])
+            images = {
+                "pred": predictions[0],
+                "truth": x[0],
+                "perturb": x_pert[0],
+            }
+            for type, image in images.items():
+                self.log_image_tpye(stage, type, t,image)
 
-            tensorboard[f"{stage}_image_pred"].append(
-                pred_pil,
-                name=f"t: {t[0]/self.timesteps}",
-            )
-            tensorboard[f"{stage}_image_truth"].append(
-                truth_pil, name=f"t: {t[0]/self.timesteps}"
-            )
-            tensorboard[f"{stage}_image_perturb"].append(
-                perturb_pil, name=f"t: {t[0]/self.timesteps}"
-            )
-            if stage == "val":
-                self.pil["pred"] = pred_pil
-                self.pil["truth"] = truth_pil
-                self.pil["perturb"] = perturb_pil
+    def log_image_tpye(self, stage, type, t, image):
+        pil = self.to_pil(image)
+        self.logger.experiment[f"{stage}_image_{type}"].append(
+            pil,
+            name=f"t: {t}",
+        )
+        if stage == "val":
+            self.pil[type] = pil
+
+    def clear_image_logs(self, stage, tensorboard):
+        del tensorboard[f"{stage}_image_pred"]
+        del tensorboard[f"{stage}_image_truth"]
+        del tensorboard[f"{stage}_image_perturb"]
 
     def _denoise_ddim(self, x, t, t_prev, pred_noise):
         ab = self.ab_t[t]
