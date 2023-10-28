@@ -33,6 +33,21 @@ MODEL_CKPT_FILE = datetime.now().isoformat()
 MODEL_CKPT_DIRPATH = "model_checkpoints/"
 
 
+def find_latest_checkpoint(cfg: DictConfig):
+    if cfg.training.checkpoint is not None:
+        checkpoint_file = cfg.training.checkpoint
+        print(f"Using checkpoint {checkpoint_file}")
+        return checkpoint_file
+    file_list = os.listdir(cfg.training.checkpoint_dir)
+    if len(file_list) > 0:
+        file_list.sort(reverse=True)
+        checkpoint_file = os.path.join(cfg.training.checkpoint_dir, file_list[0])
+        print(f"Found checkpoint file {checkpoint_file}")
+        return checkpoint_file
+    else:
+        return None
+
+
 def training(cfg: DictConfig):
     dm = ImageDataModule(
         batch_size=int(cfg.training.batch_size),
@@ -41,9 +56,9 @@ def training(cfg: DictConfig):
     )
 
     if cfg.training.checkpoint_dir is not None:
-        print(f"Found checkpoint file {cfg.training.checkpoint}, loading...")
+        checkpoint_file = find_latest_checkpoint(cfg)
         model = DiffusionModule.load_from_checkpoint(
-            cfg.training.checkpoint,
+            checkpoint_file,
             config=DiffusionModuleConfig(
                 learning_rate=float(cfg.training.learning_rate)
             ),
