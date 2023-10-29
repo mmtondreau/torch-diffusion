@@ -1,20 +1,16 @@
 import pytorch_lightning as pl
 from torch_diffusion.callbacks.slack_alert import SlackAlert
-from torch_diffusion.config import Config
+
 
 from torch_diffusion.data.image_data_module import ImageDataModule
 from torch_diffusion.data.preprocessor import PreProcessor
 from torch_diffusion.model.difussion_model import DiffusionModule, DiffusionModuleConfig
 import os
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint, BatchSizeFinder
-import neptune
+from pytorch_lightning.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import NeptuneLogger
 import torch
-import sys
-import argparse
-from dataclasses import dataclass
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 import hydra
 from datetime import datetime
 
@@ -69,25 +65,32 @@ def training(cfg: DictConfig):
                 learning_rate=float(cfg.training.learning_rate)
             )
         )
+    callbacks = [
+        ModelCheckpoint(
+            monitor="val_loss",
+            mode="min",
+            filename=MODEL_CKPT_FILE,
+            dirpath=MODEL_CKPT_DIRPATH,
+            enable_version_counter=True,
+        ),
+        # BatchSizeFinder(mode="binsearch", init_val=args.batch_size),
+        SlackAlert(cfg=cfg, model_name="diffusion"),
+    ]
+    if cfg.training.early_stopping.enabled == "True":
+        callbacks.append(
+            EarlyStopping(
+                monitor="ptl/val_loss",
+                mode="min",
+                patience=int(cfg.training.early_stopping.patience),
+                min_delta=float(cfg.training.early_stopping.min_delta),
+            ),
+        )
     trainer = pl.Trainer(
         logger=setup_logger(cfg),
         devices=1,
         accelerator="gpu",
-        max_epochs=100,
-        callbacks=[
-            EarlyStopping(
-                monitor="ptl/val_loss", mode="min", patience=5, min_delta=0.0001
-            ),
-            ModelCheckpoint(
-                monitor="val_loss",
-                mode="min",
-                filename=MODEL_CKPT_FILE,
-                dirpath=MODEL_CKPT_DIRPATH,
-                enable_version_counter=True,
-            ),
-            # BatchSizeFinder(mode="binsearch", init_val=args.batch_size),
-            SlackAlert(config=Config(), model_name="diffusion"),
-        ],
+        max_epochs=cfg.training.max_epochs,
+        callbacks=callbacks,
     )
     trainer.fit(model, datamodule=dm)
 

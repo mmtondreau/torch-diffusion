@@ -1,6 +1,6 @@
 from typing import Any, Dict
+from omegaconf import DictConfig
 from pytorch_lightning.callbacks import Callback
-from torch_diffusion.config import Config
 from torch_diffusion.slack.client import SlackChannel, SlackClient
 
 
@@ -9,8 +9,8 @@ class SlackAlert(Callback):
     _state: Dict[str, Any]
     _model_name: str
 
-    def __init__(self, config: Config, model_name: str):
-        self._slack_client = SlackClient(config=config)
+    def __init__(self, cfg: DictConfig, model_name: str):
+        self._slack_client = SlackClient(config=cfg)
         self._model_name = model_name
 
     def on_train_start(self, trainer, pl_module):

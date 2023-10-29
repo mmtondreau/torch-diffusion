@@ -5,11 +5,16 @@ slack:
 neptune:
   api_key: ${oc.env:NEPTUNE_API_KEY, null}
 training:
+  max_epochs: ${oc.env:TRAINING_MAX_EPOCHS, 100}
   batch_size: ${oc.env:TRAINING_BATCH_SIZE, 32}
   learning_rate: ${oc.env:TRAINING_LEARNING_RATE, 0.001}
   num_workers: ${oc.env:TRAINING_NUM_WORKERS, 2}
-  checkpoint_dir: ${oc.env:TRAINING_CHECKPOINT_DIR, "./model_checkpoints" } 
-  checkpoint: ${oc.env:TRAINING_CHECKPOINT_DIR, null} 
+  checkpoint_dir: ${oc.env:TRAINING_CHECKPOINT_DIR, "./model_checkpoints" }
+  checkpoint: ${oc.env:TRAINING_CHECKPOINT_DIR, null}
+  early_stopping:
+    enabled: ${oc.env:TRAINING_EARLY_STOPPING_ENABLED, False}
+    patience: ${oc.env:TRAINING_EARLY_STOPPING_PATIENCE, 5}
+    min_delta: ${oc.env:TRAINING_EARLY_STOPPING_MIN_DELTA, 0.0001}
 preprocess:
   enabled: ${oc.env:PREPROCESS_ENABLED, False}
   output_dir: ${oc.env:PREPROCESS_OUTPUT_DIR, "./preprocessed_data"}

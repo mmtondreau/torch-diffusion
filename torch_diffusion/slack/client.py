@@ -1,10 +1,10 @@
 from io import BytesIO
+
+from omegaconf import DictConfig
 from slack_sdk import WebClient
-from typing import Any, Dict, Optional
-import os
+from typing import Dict
 from enum import Enum
 
-from torch_diffusion.config import Config
 import logging
 from PIL import Image
 
@@ -20,12 +20,12 @@ class SlackChannel(str, Enum):
 
 
 class SlackClient:
-    _config: Config
+    _config: DictConfig
     _slack_web_client: WebClient
 
-    def __init__(self, config: Config):
+    def __init__(self, config: DictConfig):
         self._config = config
-        self._slack_web_client = WebClient(token=config.get_slack_token())
+        self._slack_web_client = WebClient(token=config.slack.token)
 
     def send(self, channel: SlackChannel, message: str) -> str:
         try:
@@ -71,4 +71,4 @@ class SlackClient:
             logger.error(f"Error posting image: {str(e)}")
 
     def __get_channel_id(self, channel: SlackChannel) -> str:
-        return self._config.get_slack_channelid(channel)
+        return self._config.slack.channels[channel]
