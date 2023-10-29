@@ -25,7 +25,7 @@ def setup_logger(cfg: DictConfig):
     )
 
 
-MODEL_CKPT_FILE = datetime.now().isoformat()
+MODEL_CKPT_FILE = datetime.now().isoformat() + ":{val_loss:.2f}"
 MODEL_CKPT_DIRPATH = "model_checkpoints/"
 
 
@@ -89,7 +89,7 @@ def training(cfg: DictConfig):
         logger=setup_logger(cfg),
         devices=1,
         accelerator="gpu",
-        max_epochs=cfg.training.max_epochs,
+        max_epochs=int(cfg.training.max_epochs),
         callbacks=callbacks,
     )
     trainer.fit(model, datamodule=dm)
