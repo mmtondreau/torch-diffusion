@@ -7,7 +7,7 @@ from torch_diffusion.data.preprocessor import PreProcessor
 from torch_diffusion.model.difussion_model import DiffusionModule, DiffusionModuleConfig
 import os
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
 from lightning.pytorch.loggers import NeptuneLogger
 import torch
 from omegaconf import DictConfig
@@ -75,7 +75,11 @@ def training(cfg: DictConfig):
         ),
         # BatchSizeFinder(mode="binsearch", init_val=args.batch_size),
         SlackAlert(cfg=cfg, model_name="diffusion"),
+        StochasticWeightAveraging(
+            swa_lrs=float(cfg.training.stochastic_weight_averaging)
+        ),
     ]
+
     if cfg.training.early_stopping.enabled == "True":
         callbacks.append(
             EarlyStopping(
@@ -91,8 +95,26 @@ def training(cfg: DictConfig):
         accelerator="gpu",
         max_epochs=int(cfg.training.max_epochs),
         callbacks=callbacks,
+        accumulate_grad_batches=config_accumulate_grad_batches(cfg),
+        gradient_clip_val=config_gradient_clip_val(cfg),
     )
     trainer.fit(model, datamodule=dm)
+
+
+def config_gradient_clip_val(cfg):
+    return float(
+        cfg.training.gradient_clip_val
+        if cfg.training.gradient_clip_val is not None
+        else None
+    )
+
+
+def config_accumulate_grad_batches(cfg):
+    return (
+        int(cfg.training.accumulate_grad_batches)
+        if cfg.training.accumulate_grad_batches is not None
+        else None
+    )
 
 
 @hydra.main(config_name="config.yaml", config_path="config", version_base=None)
