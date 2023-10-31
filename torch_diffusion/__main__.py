@@ -119,7 +119,7 @@ def config_accumulate_grad_batches(cfg):
 
 @hydra.main(config_name="config.yaml", config_path="config", version_base=None)
 def main(cfg):
-    if cfg.preprocess == "True":
+    if cfg.preprocess.enabled == "True":
         PreProcessor(
             data_dir=cfg.preprocess.input_dir, output_dir=cfg.preprocess.output_dir
         ).process()
