@@ -121,7 +121,10 @@ def config_accumulate_grad_batches(cfg):
 def main(cfg):
     if cfg.preprocess.enabled == "True":
         PreProcessor(
-            data_dir=cfg.preprocess.input_dir, output_dir=cfg.preprocess.output_dir
+            data_dir=cfg.preprocess.input_dir,
+            output_dir=cfg.preprocess.output_dir,
+            target_height=int(cfg.model.height),
+            target_width=int(cfg.model.width),
         ).process()
     else:
         training(cfg)
