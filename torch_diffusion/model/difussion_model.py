@@ -9,12 +9,20 @@ from dataclasses import dataclass
 @dataclass
 class DiffusionModuleConfig:
     learning_rate: float = 0.001
+    features: int = 512
+    height: int = 128
+    width: int = 192
 
 
 class DiffusionModule(pl.LightningModule):
     def __init__(self, config: DiffusionModuleConfig):
         super().__init__()
-        self.model = ContextUnet(in_channels=3)
+        self.model = ContextUnet(
+            in_channels=3,
+            n_feat=config.features,
+            width=config.width,
+            height=config.height,
+        )
         self.learning_rate = (
             0.001 if config.learning_rate is None else config.learning_rate
         )
@@ -114,7 +122,7 @@ class DiffusionModule(pl.LightningModule):
                 "perturb": x_pert[0],
             }
             for type, image in images.items():
-                self.log_image_tpye(stage, type, t,image)
+                self.log_image_tpye(stage, type, t, image)
 
     def log_image_tpye(self, stage, type, t, image):
         pil = self.to_pil(image)

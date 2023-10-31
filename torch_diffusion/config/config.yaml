@@ -1,9 +1,17 @@
+model:
+  height: ${oc.env:MODEL_HEIGHT, 192}
+  width: ${oc.env:MODEL_WIDTH, 128}
+  features: ${oc.env:MODEL_FEATURES, 256}
+neptune:
+  api_key: ${oc.env:NEPTUNE_API_KEY, null}
+preprocess:
+  enabled: ${oc.env:PREPROCESS_ENABLED, False}
+  output_dir: ${oc.env:PREPROCESS_OUTPUT_DIR, "./preprocessed_data"}
+  input_dir: ${oc.env:PREPROCESS_INPUT_DIR, "../data"}
 slack:
   token: ${oc.env:SLACK_TOKEN, null}
   channels:
     monitoring: ${oc.env:SLACK_CHANNELS_MONITORING, null}
-neptune:
-  api_key: ${oc.env:NEPTUNE_API_KEY, null}
 training:
   max_epochs: ${oc.env:TRAINING_MAX_EPOCHS, 100}
   batch_size: ${oc.env:TRAINING_BATCH_SIZE, 32}
@@ -14,12 +22,8 @@ training:
   accumulate_grad_batches: ${oc.env:TRAINING_ACCUMULATION_GRAD_BATCHES, 7}
   gradient_clip_val: ${oc.env:TRAINING_GRADIENT_VAL, 0.5}
   stochastic_weight_averaging: ${oc.env:STOCHASTIC_WEIGHT_AVERAGING, 1e-2}
+  validation_split: ${oc.env:TRAINING_VALIDATION_SPLIT, 0.2}
   early_stopping:
     enabled: ${oc.env:TRAINING_EARLY_STOPPING_ENABLED, False}
     patience: ${oc.env:TRAINING_EARLY_STOPPING_PATIENCE, 5}
     min_delta: ${oc.env:TRAINING_EARLY_STOPPING_MIN_DELTA, 0.0001}
-
-preprocess:
-  enabled: ${oc.env:PREPROCESS_ENABLED, False}
-  output_dir: ${oc.env:PREPROCESS_OUTPUT_DIR, "./preprocessed_data"}
-  input_dir: ${oc.env:PREPROCESS_INPUT_DIR, "../data"}

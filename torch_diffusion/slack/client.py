@@ -56,7 +56,7 @@ class SlackClient:
                 image_bytes.seek(0)
 
                 # Upload the image to Slack and add it as an attachment in a reply
-                response = self._slack_web_client.files_upload(
+                self._slack_web_client.files_upload(
                     channels=channel_id,
                     file=image_bytes,
                     filename="image.png",

@@ -6,6 +6,7 @@ from torch_diffusion.model.residual_conv_block import ResidualConvBlock
 from torch_diffusion.model.unet_down import UnetDown
 from torch_diffusion.model.unet_up import UnetUp
 
+
 class ContextUnet(pl.LightningModule):
     def __init__(
         self, in_channels, n_feat=256, n_cfeat=10, height=192, width=128

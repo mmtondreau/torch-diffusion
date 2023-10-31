@@ -48,23 +48,23 @@ def training(cfg: DictConfig):
     dm = ImageDataModule(
         batch_size=int(cfg.training.batch_size),
         num_workers=int(cfg.training.num_workers),
-        val_split=0.2,
+        validation_split=float(cfg.training.validation_split),
     )
 
+    model_config = DiffusionModuleConfig(
+        learning_rate=float(cfg.training.learning_rate),
+        features=int(cfg.model.features),
+        height=int(cfg.model.height),
+        width=int(cfg.model.width),
+    )
     if cfg.training.checkpoint_dir is not None:
         checkpoint_file = find_latest_checkpoint(cfg)
         model = DiffusionModule.load_from_checkpoint(
             checkpoint_file,
-            config=DiffusionModuleConfig(
-                learning_rate=float(cfg.training.learning_rate)
-            ),
+            config=model_config,
         )
     else:
-        model = DiffusionModule(
-            config=DiffusionModuleConfig(
-                learning_rate=float(cfg.training.learning_rate)
-            )
-        )
+        model = DiffusionModule(config=model_config)
     callbacks = [
         ModelCheckpoint(
             monitor="val_loss",

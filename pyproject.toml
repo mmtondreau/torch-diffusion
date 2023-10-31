@@ -25,7 +25,14 @@ slack-sdk = "^3.23.0"
 black = "^23.9.1"
 mypy = "^1.5.1"
 flake8 = "^6.1.0"
+types-pillow = "^10.1.0.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy-torchvision.transforms]
+ignore_missing_imports = true
+
+[tool.mypy-torchvision]
+ignore_missing_imports = true

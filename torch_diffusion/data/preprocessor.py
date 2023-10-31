@@ -10,16 +10,26 @@ class PreProcessor:
     data_dir: str
     output_dir: str
     image_files: List[str]
+    target_height: int
+    target_width: int
 
-    def __init__(self, data_dir="../data", output_dir="./preprocessed_data") -> None:
+    def __init__(
+        self,
+        data_dir="../data",
+        output_dir="./preprocessed_data",
+        target_width=128,
+        target_height=192,
+    ) -> None:
+        self.target_height = target_height
+        self.target_width = target_width
         self.data_dir = data_dir
-        self.output_dir = output_dir
+        self.output_dir = os.path.join(output_dir, f"{target_width}x{target_height}")
         os.makedirs(output_dir, exist_ok=True)
         self.image_files = [
             os.path.join(self.data_dir, fname) for fname in os.listdir(self.data_dir)
         ]
 
-    def transform(self, img, target_width=128, target_height=192):
+    def transform(self, img):
         # Get the width and height of the image
         width, height = img.size
 
@@ -31,7 +41,9 @@ class PreProcessor:
         # Apply the other transformations
         transform = transforms.Compose(
             [
-                transforms.Resize((target_height, target_width)),  # Resize the image
+                transforms.Resize(
+                    (self.target_height, self.target_width)
+                ),  # Resize the image
                 transforms.ToTensor(),  # Convert the image to a PyTorch tensor
             ]
         )
@@ -41,7 +53,9 @@ class PreProcessor:
         return img
 
     def process(self):
-        with tqdm(total=len(self.image_files), desc="Processing images", unit="image") as pbar:
+        with tqdm(
+            total=len(self.image_files), desc="Processing images", unit="image"
+        ) as pbar:
             # Loop through the image files and apply transformations
             for i, image_path in enumerate(self.image_files):
                 # Open the image
