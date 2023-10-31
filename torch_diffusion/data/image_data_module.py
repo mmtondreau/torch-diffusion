@@ -1,15 +1,14 @@
 import pytorch_lightning as pl
 
 from torch.utils.data import DataLoader
-from torch_diffusion.data.custom_image_dataset import CustomImageDataset
-import torchvision.transforms as transforms
+from torch_diffusion.data.custom_pt_dataset import CustomPTDataset
 from torch.utils.data import random_split
 
 
 class ImageDataModule(pl.LightningDataModule):
     def __init__(
         self,
-        data_dir: str = "./preprocessed_data",
+        data_dir: str = "../preprocessed_data",
         batch_size: int = 16,
         num_workers=2,
         validation_split=0.2,
@@ -20,7 +19,7 @@ class ImageDataModule(pl.LightningDataModule):
         self.validation_split = validation_split
         self.num_workers = num_workers
         # load on main thread so data gets shared across processes.
-        dataset = CustomImageDataset(self.data_dir, transform=self.transform)
+        dataset = CustomPTDataset(self.data_dir, transform=None)
 
         # Calculate the size of the validation set
         num_val_samples = int(self.validation_split * len(dataset))
@@ -36,19 +35,6 @@ class ImageDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         pass
-
-    def transform(self, img, target_width=128, target_height=192):
-        # Apply the other transformations
-        transform = transforms.Compose(
-            [
-                transforms.ToTensor(),  # Convert the image to a PyTorch tensor
-                transforms.Normalize((0.5,), (0.5,)),  # range [-1,1]
-            ]
-        )
-
-        img = transform(img)
-
-        return img
 
     def train_dataloader(self):
         return DataLoader(

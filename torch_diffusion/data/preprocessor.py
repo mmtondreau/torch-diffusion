@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 import torchvision
 from tqdm import tqdm
 from PIL import Image
+import torch
 
 
 class PreProcessor:
@@ -45,6 +46,7 @@ class PreProcessor:
                     (self.target_height, self.target_width)
                 ),  # Resize the image
                 transforms.ToTensor(),  # Convert the image to a PyTorch tensor
+                transforms.Normalize((0.5,), (0.5,)),  # range [-1,1]
             ]
         )
 
@@ -69,7 +71,7 @@ class PreProcessor:
 
                 # Save the transformed image to the output directory
                 output_path = os.path.join(self.output_dir, f"{filename}.jpg")
-                torchvision.utils.save_image(transformed_image, output_path)
+                torch.save(transformed_image, output_path)
                 # Update the progress bar every 10 iterations
                 if i % 10 == 0:
                     pbar.update(10)
