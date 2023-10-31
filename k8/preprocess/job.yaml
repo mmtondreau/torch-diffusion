@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: diffusion-preprocess-job
+spec:
+  template:
+    spec:
+      nodeSelector:
+        gpu: "true"
+      containers:
+        - image: registry.tonberry.org/tonberry/diffusion-preprocess:latest
+          name: diffusion-preprocess-job
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+              memory: "32Gi"
+              cpu: "6"
+            requests:
+              nvidia.com/gpu: 1
+              memory: "16Gi"
+              cpu: "4"
+          env:
+            - name: PREPROCESS_ENABLED
+              value: "True"
+            - name: PREPROCESS_OUTPUT_DIR
+              value: "../preprocessed_data"
+            - name: PREPROCESS_INPUT_DIR
+              value: "../data"
+            - name: MODEL_HEIGHT
+              value: "96"
+            - name: MODEL_WIDTH
+              value: "64"
+            - name: NEPTUNE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: neptune-api-key
+                  key: NEPTUNE_API_KEY
+            - name: SLACK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: slack-token
+                  key: SLACK_TOKEN
+            - name: SLACK_CHANNELS_MONITORING
+              valueFrom:
+                secretKeyRef:
+                  name: slack-channels-monitoring
+                  key: SLACK_CHANNELS_MONITORING
+          volumeMounts:
+            - name: diffusion-preprocess-job-persistent-storage
+              mountPath: /var/torch/
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        - name: diffusion-preprocess-job-persistent-storage
+          persistentVolumeClaim:
+            claimName: diffusion-preprocess-job-claim
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      restartPolicy: Never # Ensures that the Pod does not restart on failure
+  # Specify backoffLimit to control the number of retries
+  backoffLimit: 2

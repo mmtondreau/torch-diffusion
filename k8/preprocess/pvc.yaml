@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: diffusion-job-claim
+  name: diffusion-preprocess-job-claim
   namespace: torch
 spec:
   storageClassName: ""
   accessModes:
     - ReadWriteMany
-  volumeName: "diffusion-job-volume"
+  volumeName: "diffusion-preprocess-job-volume"
   resources:
     requests:
       storage: 80Gi
   selector:
     matchLabels:
-      app: diffusion-job
+      app: diffusion-preprocess-job

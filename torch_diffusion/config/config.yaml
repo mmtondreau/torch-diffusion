@@ -6,7 +6,7 @@ neptune:
   api_key: ${oc.env:NEPTUNE_API_KEY, null}
 preprocess:
   enabled: ${oc.env:PREPROCESS_ENABLED, False}
-  output_dir: ${oc.env:PREPROCESS_OUTPUT_DIR, "./preprocessed_data"}
+  output_dir: ${oc.env:PREPROCESS_OUTPUT_DIR, "../preprocessed_data"}
   input_dir: ${oc.env:PREPROCESS_INPUT_DIR, "../data"}
 slack:
   token: ${oc.env:SLACK_TOKEN, null}

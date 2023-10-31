@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: diffusion-training-job-claim
+  namespace: torch
+spec:
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany
+  volumeName: "diffusion-training-job-volume"
+  resources:
+    requests:
+      storage: 80Gi
+  selector:
+    matchLabels:
+      app: diffusion-training-job
