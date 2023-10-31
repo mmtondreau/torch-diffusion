@@ -1,5 +1,6 @@
 FROM registry.tonberry.org/tonberry/torch:1.0
 ARG PYTHON_MODULE=torch_diffusion
-RUN conda run -n torch pip install neptune
+RUN conda run -n torch pip install neptune slack-sdk hydra-core
+WORKDIR /var/torch/
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "torch", "python", "-m", "torch_diffusion", "--preprocess", "--preprocess_output", "./preprocessed_data2", "--preprocess_input", "/opt/data"] 
 # ENTRYPOINT ["sleep", "1000"]

@@ -25,11 +25,11 @@ delete-job-training:
 .PHONY: submit-training
 submit-training: delete-job-training push-training
 	kubectl apply -f k8/training \
-	&& kubectl get pods -l job-name=${TRAINING_JOB_NAME} -o json | jq -r '.items[] | select(.status.phase=="Running" or .status.phase=="Pending").metadata.name' | xargs kubectl logs -f
+	&& kubectl get pods -l job-name=${TRAINING_JOB_NAME} -o json | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[-1].metadata.name' | xargs kubectl logs -f
 
 .PHONY: training-logs
 training-logs:
-	kubectl get pods -l job-name=${TRAINING_JOB_NAME} -o json | jq -r '.items[] | select(.status.phase=="Running" or .status.phase=="Pending").metadata.name' | xargs kubectl logs -f
+	kubectl get pods -l job-name=${TRAINING_JOB_NAME} -o json | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[-1].metadata.name' | xargs kubectl logs -f
 	# kubectl get pods -l job-name=${TRAINING_JOB_NAME} | tail -n -1 | awk '{print $$1}' | xargs kubectl logs -f 
 
 
@@ -52,10 +52,10 @@ delete-job-preprocess:
 .PHONY: submit-preprocess
 submit-preprocess: delete-job-preprocess push-preprocess
 	kubectl apply -f k8/preprocess \
-	&& kubectl get pods -l job-name=${PREPROCESS_JOB_NAME} -o json | jq -r '.items[] | select(.status.phase=="Running" or .status.phase=="Pending").metadata.name' | xargs kubectl logs -f
+	&& kubectl get pods -l job-name=${PREPROCESS_JOB_NAME} -o json | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[-1].metadata.name' | xargs kubectl logs -f
 
 .PHONY: preprocess-logs
 preprocess-logs:
-	kubectl get pods -l job-name=${PREPROCESS_JOB_NAME} -o json | jq -r '.items[] | select(.status.phase=="Running" or .status.phase=="Pending").metadata.name' | xargs kubectl logs -f
+	kubectl get pods -l job-name=${PREPROCESS_JOB_NAME} -o json | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[-1].metadata.name' | xargs kubectl logs -f
 	# kubectl get pods -l job-name=${PREPROCESS_JOB_NAME} | tail -n -1 | awk '{print $$1}' | xargs kubectl logs -f 
 
