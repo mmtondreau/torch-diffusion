@@ -24,6 +24,10 @@ spec:
               value: "32"
             - name: TRAINING_NUM_WORKERS
               value: "2"
+            - name: MODEL_HEIGHT
+              value: "96"
+            - name: MODEL_WIDTH
+              value: "64"
             - name: NEPTUNE_API_KEY
               valueFrom:
                 secretKeyRef:
