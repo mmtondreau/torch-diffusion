@@ -50,6 +50,8 @@ def training(cfg: DictConfig):
         num_workers=int(cfg.training.num_workers),
         validation_split=float(cfg.training.validation_split),
         data_dir=cfg.preprocess.output_dir,
+        width=cfg.model.width,
+        height=cfg.model.height,
     )
 
     model_config = DiffusionModuleConfig(

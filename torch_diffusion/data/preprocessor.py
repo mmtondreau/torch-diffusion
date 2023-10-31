@@ -17,7 +17,7 @@ class PreProcessor:
     def __init__(
         self,
         data_dir="../data",
-        output_dir="./preprocessed_data",
+        output_dir="../preprocessed_data",
         target_width=128,
         target_height=192,
     ) -> None:
