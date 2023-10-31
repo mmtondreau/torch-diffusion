@@ -24,7 +24,7 @@ class PreProcessor:
         self.target_width = target_width
         self.data_dir = data_dir
         self.output_dir = os.path.join(output_dir, f"{target_width}x{target_height}")
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
         self.image_files = [
             os.path.join(self.data_dir, fname) for fname in os.listdir(self.data_dir)
         ]
