@@ -22,4 +22,10 @@ delete-job-training:
 
 .PHONY: submit-training
 submit-training: delete-job-training push-training
-	kubectl apply -f k8
+	kubectl apply -f k8 \
+	&& kubectl get pods -l job-name=diffusion-job -o json | jq -r '.items[] | select(.status.phase=="Running" or .status.phase=="Pending").metadata.name' | xargs kubectl logs -f
+
+.PHONY: training-logs
+training-logs:
+	kubectl get pods -l job-name=diffusion-job -o json | jq -r '.items[] | select(.status.phase=="Running" or .status.phase=="Pending").metadata.name' | xargs kubectl logs -f
+	# kubectl get pods -l job-name=diffusion-job | tail -n -1 | awk '{print $$1}' | xargs kubectl logs -f 
