@@ -11,7 +11,7 @@ spec:
   accessModes:
     - ReadWriteMany
   local:
-    path: /mnt/sd/torch/torch-diffusion
+    path: /mnt/sd/torch
   nodeAffinity:
     required:
       nodeSelectorTerms:
