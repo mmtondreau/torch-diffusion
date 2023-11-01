@@ -19,23 +19,26 @@ class ImageDataModule(pl.LightningDataModule):
         batch_size: int = 16,
         num_workers=2,
         validation_split=0.2,
+        test_split=0.1,
     ):
         super().__init__()
         self.data_dir = os.path.join(data_dir, f"{width}x{height}")
         logger.info(f"Loadig from {self.data_dir }")
         self.batch_size = batch_size
         self.validation_split = validation_split
+        self.test_split = test_split
         self.num_workers = num_workers
         # load on main thread so data gets shared across processes.
         dataset = CustomPTDataset(self.data_dir, transform=None)
+        # Calculate the size of splits
+        num_samples = len(dataset)
+        num_val_samples = int(self.validation_split * num_samples)
+        num_test_samples = int(self.test_split * num_samples)
+        num_train_samples = num_samples - num_val_samples - num_test_samples
 
-        # Calculate the size of the validation set
-        num_val_samples = int(self.validation_split * len(dataset))
-        num_train_samples = len(dataset) - num_val_samples
-
-        # Split the dataset into training and validation sets
-        self.train_dataset, self.val_dataset = random_split(
-            dataset, [num_train_samples, num_val_samples]
+        # Split the dataset into training, validation, and test sets
+        self.train_dataset, self.val_dataset, self.test_dataset = random_split(
+            dataset, [num_train_samples, num_val_samples, num_test_samples]
         )
 
     def prepare_data(self) -> None:
@@ -55,4 +58,9 @@ class ImageDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
+
+    def test_dataloader(self):  # Define test dataloader
+        return DataLoader(
+            self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
         )

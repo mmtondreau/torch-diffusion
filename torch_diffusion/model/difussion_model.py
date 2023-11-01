@@ -33,6 +33,7 @@ class DiffusionModule(pl.LightningModule):
         self.beta2 = 0.02
         self.example_input_array = [torch.Tensor(16, 3, 192, 128), torch.Tensor(16, 1)]
         self.val_loss = []
+        self.train_loss = []
         self.pil = {}
         self.save_hyperparameters()
 
@@ -51,11 +52,15 @@ class DiffusionModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self._shared_eval(batch, batch_idx, "train")
-        self.log("train_loss", loss, prog_bar=True)
+        self.log("train/loss", loss, prog_bar=True)
         return loss
 
-    def on_validation_epoch_start(self):
-        self.val_loss.clear()
+    def on_train_epoch_start(self):
+        self.train_loss.clear()
+
+    def on_train_epoch_end(self):
+        loss = torch.stack(self.train_loss).mean()
+        self.log("train/epoch/loss", loss)
 
     def on_validation_epoch_start(self):
         self.val_loss.clear()
@@ -63,18 +68,16 @@ class DiffusionModule(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         # this is the validation loop
         loss = self._shared_eval(batch, batch_idx, "val")
-        self.log("val_loss", loss, prog_bar=True)
         self.val_loss.append(loss)
 
     def on_validation_epoch_end(self):
         avg_loss = torch.stack(self.val_loss).mean()
-        self.log("ptl/val_loss", avg_loss, sync_dist=True)
-        self.logger.experiment["ptl/val_loss"].append(avg_loss)
+        self.log("val/loss", avg_loss, sync_dist=True)
 
     def test_step(self, batch, batch_idx):
         # this is the test loop
         loss = self._shared_eval(batch, batch_idx, "test")
-        self.log("test_loss", loss)
+        self.log("test/loss", loss)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -106,11 +109,11 @@ class DiffusionModule(pl.LightningModule):
         self.log_images(batch_idx, stage, x, tensorboard, t, x_pert, predictions)
 
         loss = F.mse_loss(predictions, noise)
-        tensorboard[f"{stage}_loss"].append(loss)
+        tensorboard[f"{stage}/loss"].append(loss)
         return loss
 
     def log_images(self, batch_idx, stage, x, tensorboard, t, x_pert, predictions):
-        image_names = [f"pred", f"truth", f"perturb"]
+        image_names = ["pred", "truth", "perturb"]
         if tensorboard.exists(f"{stage}_image_pred") and batch_idx == 0:
             self.clear_image_logs(stage, tensorboard)
             self.pil = {name: [] for name in image_names}

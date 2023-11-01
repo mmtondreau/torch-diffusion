@@ -7,7 +7,11 @@ from torch_diffusion.data.preprocessor import PreProcessor
 from torch_diffusion.model.difussion_model import DiffusionModule, DiffusionModuleConfig
 import os
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    StochasticWeightAveraging,
+    LearningRateMonitor,
+)
 from lightning.pytorch.loggers import NeptuneLogger
 import torch
 from omegaconf import DictConfig
@@ -22,6 +26,7 @@ def setup_logger(cfg: DictConfig):
         api_key=cfg.neptune.api_key,
         project="mmtondreau/diffusion",
         name="diffusion",
+        log_model_checkpoints=True,
     )
 
 
@@ -49,6 +54,7 @@ def training(cfg: DictConfig):
         batch_size=int(cfg.training.batch_size),
         num_workers=int(cfg.training.num_workers),
         validation_split=float(cfg.training.validation_split),
+        test_split=float(cfg.training.test_split),
         data_dir=cfg.preprocess.output_dir,
         width=cfg.model.width,
         height=cfg.model.height,
@@ -81,6 +87,7 @@ def training(cfg: DictConfig):
         StochasticWeightAveraging(
             swa_lrs=float(cfg.training.stochastic_weight_averaging)
         ),
+        LearningRateMonitor(logging_interval="epoch"),
     ]
 
     if cfg.training.early_stopping.enabled == "True":
@@ -92,16 +99,23 @@ def training(cfg: DictConfig):
                 min_delta=float(cfg.training.early_stopping.min_delta),
             ),
         )
+    neptune_logger = setup_logger(cfg)
+    neptune_logger.log_model_summary(model=model, max_depth=-1)
+    neptune_logger.log_hyperparams(params=model_config)
+
     trainer = pl.Trainer(
-        logger=setup_logger(cfg),
+        logger=neptune_logger,
         devices=1,
         accelerator="gpu",
         max_epochs=int(cfg.training.max_epochs),
         callbacks=callbacks,
         accumulate_grad_batches=config_accumulate_grad_batches(cfg),
         gradient_clip_val=config_gradient_clip_val(cfg),
+        enable_progress_bar=False,
+        log_every_n_steps=50,
     )
     trainer.fit(model, datamodule=dm)
+    trainer.test(model, datamodule=dm)
 
 
 def config_gradient_clip_val(cfg):

@@ -23,6 +23,7 @@ training:
   gradient_clip_val: ${oc.env:TRAINING_GRADIENT_VAL, 0.5}
   stochastic_weight_averaging: ${oc.env:STOCHASTIC_WEIGHT_AVERAGING, 1e-2}
   validation_split: ${oc.env:TRAINING_VALIDATION_SPLIT, 0.2}
+  test_split: ${oc.env:TRAINING_TEST_SPLIT, 0.1}
   early_stopping:
     enabled: ${oc.env:TRAINING_EARLY_STOPPING_ENABLED, False}
     patience: ${oc.env:TRAINING_EARLY_STOPPING_PATIENCE, 5}
