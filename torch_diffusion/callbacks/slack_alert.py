@@ -8,10 +8,12 @@ class SlackAlert(Callback):
     _slack_client: SlackClient
     _state: Dict[str, Any]
     _model_name: str
+    _monitor: str
 
-    def __init__(self, cfg: DictConfig, model_name: str):
+    def __init__(self, cfg: DictConfig, model_name: str, monitor: str):
         self._slack_client = SlackClient(config=cfg)
         self._model_name = model_name
+        self._monitor = monitor
 
     def on_train_start(self, trainer, pl_module):
         self._slack_client.send(
@@ -27,10 +29,10 @@ class SlackAlert(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         epoch = trainer.current_epoch
-        val_loss = trainer.callback_metrics.get("ptl/val_loss")
+        metric = trainer.callback_metrics.get(self._monitor)
         ts = self._slack_client.send(
             SlackChannel.MONITORING,
-            f"{self._model_name} Completed Epoch: {epoch}, Val Loss: {val_loss}",
+            f"{self._model_name} Completed Epoch: {epoch}, {self._monitor}: {metric}",
         )
 
         self._slack_client.send_images(
