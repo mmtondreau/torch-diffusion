@@ -87,7 +87,7 @@ def training(cfg: DictConfig):
             enable_version_counter=True,
         ),
         # BatchSizeFinder(mode="binsearch", init_val=args.batch_size),
-        SlackAlert(cfg=cfg, model_name="diffusion"),
+        SlackAlert(cfg=cfg, model_name="diffusion", monitor="val/epoch/loss"),
         StochasticWeightAveraging(
             swa_lrs=float(cfg.training.stochastic_weight_averaging)
         ),
