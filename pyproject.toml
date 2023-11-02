@@ -30,9 +30,3 @@ types-pillow = "^10.1.0.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.mypy-torchvision.transforms]
-ignore_missing_imports = true
-
-[tool.mypy-torchvision]
-ignore_missing_imports = true

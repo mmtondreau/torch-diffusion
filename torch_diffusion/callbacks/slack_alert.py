@@ -38,9 +38,9 @@ class SlackAlert(Callback):
         self._slack_client.send_images(
             SlackChannel.MONITORING,
             images={
-                "predicted": pl_module.pil["pred"],
-                "perturb": pl_module.pil["perturb"],
-                "truth": pl_module.pil["truth"],
+                "predicted": pl_module._pil["pred"],
+                "perturb": pl_module._pil["perturb"],
+                "truth": pl_module._pil["truth"],
             },
             parent_ts=ts,
         )

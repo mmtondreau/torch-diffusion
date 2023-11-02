@@ -1,7 +1,6 @@
 import os
 from typing import List
 import torchvision.transforms as transforms
-import torchvision
 from tqdm import tqdm
 from PIL import Image
 import torch

@@ -4,7 +4,11 @@ from torch_diffusion.callbacks.slack_alert import SlackAlert
 
 from torch_diffusion.data.image_data_module import ImageDataModule
 from torch_diffusion.data.preprocessor import PreProcessor
-from torch_diffusion.model.difussion_model import DiffusionModule, DiffusionModuleConfig
+from torch_diffusion.model.difussion_model import (
+    DiffusionModule,
+    DiffusionModuleConfig,
+    DiffusionModuleMetrics,
+)
 import os
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import (
@@ -13,7 +17,6 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
 )
 from lightning.pytorch.loggers import NeptuneLogger
-import neptune
 import torch
 from omegaconf import DictConfig
 import hydra
@@ -80,14 +83,18 @@ def training(cfg: DictConfig):
         model = DiffusionModule(config=model_config)
     callbacks = [
         ModelCheckpoint(
-            monitor="val/epoch/loss",
+            monitor=DiffusionModuleMetrics.VALIDATION_EPOCH_LOSS,
             mode="min",
             filename=MODEL_CKPT_FILE,
             dirpath=MODEL_CKPT_DIRPATH,
             enable_version_counter=True,
         ),
         # BatchSizeFinder(mode="binsearch", init_val=args.batch_size),
-        SlackAlert(cfg=cfg, model_name="diffusion", monitor="val/epoch/loss"),
+        SlackAlert(
+            cfg=cfg,
+            model_name="diffusion",
+            monitor=DiffusionModuleMetrics.VALIDATION_EPOCH_LOSS,
+        ),
         StochasticWeightAveraging(
             swa_lrs=float(cfg.training.stochastic_weight_averaging)
         ),
@@ -97,7 +104,7 @@ def training(cfg: DictConfig):
     if cfg.training.early_stopping.enabled == "True":
         callbacks.append(
             EarlyStopping(
-                monitor="val/epoch/loss",
+                monitor=DiffusionModuleMetrics.VALIDATION_EPOCH_LOSS,
                 mode="min",
                 patience=int(cfg.training.early_stopping.patience),
                 min_delta=float(cfg.training.early_stopping.min_delta),
