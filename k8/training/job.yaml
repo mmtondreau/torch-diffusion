@@ -21,14 +21,14 @@ spec:
               cpu: "4"
           env:
             - name: TRAINING_BATCH_SIZE
-              value: "32"
+              value: "256"
             - name: TRAINING_NUM_WORKERS
               value: "2"
             - name: MODEL_HEIGHT
-              value: "96"
+              value: "48"
             - name: MODEL_WIDTH
-              value: "64"
-            - name: NEPTUNE_API_KEY
+              value: "32"
+            - name: NEPTUNE_API_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: neptune-api-key

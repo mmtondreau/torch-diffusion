@@ -52,7 +52,7 @@ class DiffusionModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self._shared_eval(batch, batch_idx, "train")
-        self.log("train/loss", loss, prog_bar=True)
+        self.train_loss.append(loss)
         return loss
 
     def on_train_epoch_start(self):
@@ -69,15 +69,16 @@ class DiffusionModule(pl.LightningModule):
         # this is the validation loop
         loss = self._shared_eval(batch, batch_idx, "val")
         self.val_loss.append(loss)
+        # self.log("val/loss", loss, sync_dist=True)
 
     def on_validation_epoch_end(self):
         avg_loss = torch.stack(self.val_loss).mean()
-        self.log("val/loss", avg_loss, sync_dist=True)
+        self.log("val/epoch/loss", avg_loss, sync_dist=True)
 
     def test_step(self, batch, batch_idx):
         # this is the test loop
         loss = self._shared_eval(batch, batch_idx, "test")
-        self.log("test/loss", loss)
+        # self.log("test/loss", loss)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -90,7 +91,8 @@ class DiffusionModule(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "monitor": "train_loss",
+                "interval": "epoch",
+                "monitor": "train/epoch/loss",
             },
         }
 
@@ -109,7 +111,7 @@ class DiffusionModule(pl.LightningModule):
         self.log_images(batch_idx, stage, x, tensorboard, t, x_pert, predictions)
 
         loss = F.mse_loss(predictions, noise)
-        tensorboard[f"{stage}/loss"].append(loss)
+        tensorboard[f"{stage}/step/loss"].append(loss)
         return loss
 
     def log_images(self, batch_idx, stage, x, tensorboard, t, x_pert, predictions):
