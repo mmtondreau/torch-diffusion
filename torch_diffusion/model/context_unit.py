@@ -28,7 +28,7 @@ class ContextUnet(pl.LightningModule):
         self.down2 = UnetDown(n_feat, 2 * n_feat)  # down2 #[10, 256, 48, 32]
 
         # original: self.to_vec = nn.Sequential(nn.AvgPool2d(7), nn.GELU())
-        self.to_vec = nn.Sequential(nn.AvgPool2d((4)), nn.GELU())
+        self.to_vec = nn.Sequential(nn.AvgPool2d((2)), nn.GELU())
 
         # Embed the timestep and context labels with a one-layer fully connected neural network
         self.timeembed1 = EmbedFC(1, 2 * n_feat)
