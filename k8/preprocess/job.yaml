@@ -23,13 +23,22 @@ spec:
             - name: PREPROCESS_ENABLED
               value: "True"
             - name: PREPROCESS_OUTPUT_DIR
-              value: "../preprocessed_data"
+              valueFrom:
+                configMapKeyRef:
+                  name: diffusion-config
+                  key: data_dir
             - name: PREPROCESS_INPUT_DIR
               value: "../data"
             - name: MODEL_HEIGHT
-              value: "48"
+              valueFrom:
+                configMapKeyRef:
+                  name: diffusion-config
+                  key: model.height
             - name: MODEL_WIDTH
-              value: "32"
+              valueFrom:
+                configMapKeyRef:
+                  name: diffusion-config
+                  key: model.width
             - name: NEPTUNE_API_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: diffusion-config
+data:
+  model.height: "24"
+  model.width: "16"
+  data_dir: "../preprocessed_data"
