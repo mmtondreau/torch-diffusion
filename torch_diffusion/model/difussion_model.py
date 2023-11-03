@@ -151,10 +151,10 @@ class DiffusionModule(pl.LightningModule):
 
     def _log_image_tpye(self, stage, type, t, image):
         pil = self._to_pil(image)
-        self.logger.experiment[f"{stage}_image_{type}"].append(
-            pil,
-            name=f"t: {t}",
-        )
+        # self.logger.experiment[f"{stage}_image_{type}"].append(
+        #     pil,
+        #     name=f"t: {t}",
+        # )
         if stage == "val":
             self._pil[type] = pil
 

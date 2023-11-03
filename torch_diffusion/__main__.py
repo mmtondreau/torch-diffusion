@@ -73,14 +73,17 @@ def training(cfg: DictConfig):
         width=int(cfg.model.width),
     )
 
+    checkpoint_file = None
     if cfg.training.checkpoint_dir is not None:
         checkpoint_file = find_latest_checkpoint(cfg)
-        model = DiffusionModule.load_from_checkpoint(
-            checkpoint_file,
-            config=model_config,
-        )
-    else:
+        if checkpoint_file != None:
+            model = DiffusionModule.load_from_checkpoint(
+                checkpoint_file,
+                config=model_config,
+            )
+    if checkpoint_file is None:
         model = DiffusionModule(config=model_config)
+
     callbacks = [
         ModelCheckpoint(
             monitor=DiffusionModuleMetrics.VALIDATION_EPOCH_LOSS,

@@ -69,7 +69,7 @@ class PreProcessor:
                 filename = os.path.splitext(os.path.basename(image_path))[0]
 
                 # Save the transformed image to the output directory
-                output_path = os.path.join(self.output_dir, f"{filename}.jpg")
+                output_path = os.path.join(self.output_dir, f"{filename}.pt")
                 torch.save(transformed_image, output_path)
                 # Update the progress bar every 10 iterations
                 if i % 10 == 0:
