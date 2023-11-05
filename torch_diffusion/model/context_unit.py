@@ -24,12 +24,12 @@ class ContextUnet(pl.LightningModule):
         self.init_conv = ResidualConvBlock(in_channels, n_feat, is_res=True)
 
         # Initialize the down-sampling path of the U-Net with two levels
-        self.down1 = UnetDown(n_feat, n_feat, 7)  # down1 #[10, 256, 96, 64]
-        self.down2 = UnetDown(n_feat, 2 * n_feat, 5)  # down2 #[10, 512z, 48, 32]
-        self.down3 = UnetDown(2 * n_feat, 4 * n_feat, 3)  # down2 #[10, 256, 48, 32]
+        self.down1 = UnetDown(n_feat, n_feat, 3)  # down1 #[10, 256, 48, 32]
+        self.down2 = UnetDown(n_feat, 2 * n_feat, 3)  # down2 #[10, 512z, 24, 16]
+        self.down3 = UnetDown(2 * n_feat, 4 * n_feat, 3)  # down2 #[10, 256, 12, 8]
 
         # original: self.to_vec = nn.Sequential(nn.AvgPool2d(7), nn.GELU())
-        feature_kernel = (height // 4, width // 4)
+        feature_kernel = (height // 8, width // 8)
         self.to_vec = nn.Sequential(
             nn.AvgPool2d(feature_kernel), nn.GELU()
         )  # [10, 256, 12, 8]
@@ -49,13 +49,13 @@ class ContextUnet(pl.LightningModule):
                 feature_kernel,
                 feature_kernel,
             ),  # up-sample
-            nn.GroupNorm(8, 2 * n_feat),  # normalize
+            nn.GroupNorm(8, 4 * n_feat),  # normalize
             nn.ReLU(),
         )  # (48,32) [10, 256, 12, 8]
 
-        self.up1 = UnetUp(8 * n_feat, n_feat, kernel_size=3)
-        self.up2 = UnetUp(4 * n_feat, n_feat, kernel_size=5)
-        self.up3 = UnetUp(2 * n_feat, n_feat, kernel_size=7)
+        self.up1 = UnetUp(8 * n_feat, 2 * n_feat, kernel_size=3)
+        self.up2 = UnetUp(4 * n_feat, n_feat, kernel_size=3)
+        self.up3 = UnetUp(2 * n_feat, n_feat, kernel_size=3)
 
         # Initialize the final convolutional layers to map to the same number of channels as the input image
         self.out = nn.Sequential(
