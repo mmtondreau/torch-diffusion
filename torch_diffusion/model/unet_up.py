@@ -12,6 +12,7 @@ class UnetUp(pl.LightningModule):
         # The block consists of a ConvTranspose2d layer for upsampling, followed by two ResidualConvBlock layers
         layers = [
             nn.ConvTranspose2d(in_channels, out_channels, 2, 2),
+            nn.Dropout(0.2),
             ResidualConvBlock(out_channels, out_channels),
             ResidualConvBlock(out_channels, out_channels),
         ]

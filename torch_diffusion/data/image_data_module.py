@@ -31,14 +31,14 @@ class ImageDataModule(pl.LightningDataModule):
         # load on main thread so data gets shared across processes.
         dataset = CustomPTDataset(self.data_dir, transform=None)
         # Calculate the size of splits
-        num_samples = len(dataset)
-        num_val_samples = int(self.validation_split * num_samples)
-        num_test_samples = int(self.test_split * num_samples)
-        num_train_samples = num_samples - num_val_samples - num_test_samples
+        self.total_len = len(dataset)
+        self.val_len = int(self.validation_split * self.total_len)
+        self.test_len = int(self.test_split * self.total_len)
+        self.train_len = self.total_len - self.val_len - self.test_len
 
         # Split the dataset into training, validation, and test sets
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
-            dataset, [num_train_samples, num_val_samples, num_test_samples]
+            dataset, [self.train_len, self.val_len, self.test_len]
         )
 
     def prepare_data(self) -> None:

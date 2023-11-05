@@ -21,9 +21,17 @@ spec:
               cpu: "4"
           env:
             - name: TRAINING_BATCH_SIZE
-              value: "512"
+              valueFrom:
+                configMapKeyRef:
+                  name: diffusion-config
+                  key: training.batch_size
             - name: TRAINING_NUM_WORKERS
               value: "2"
+            - name: TRAINING_MAX_EPOCHS
+              valueFrom:
+                configMapKeyRef:
+                  name: diffusion-config
+                  key: training.max_epochs
             - name: PREPROCESS_OUTPUT_DIR
               valueFrom:
                 configMapKeyRef:

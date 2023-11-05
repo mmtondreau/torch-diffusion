@@ -6,6 +6,9 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from dataclasses import dataclass
 from PIL.Image import Image
+import time
+from lightning.pytorch.utilities.model_summary import ModelSummary
+import hashlib
 
 
 @dataclass(frozen=True)
@@ -26,13 +29,23 @@ class DiffusionModuleConfig:
     width: int = 192
 
 
+@dataclass
+class DiffusionEvaluation:
+    perturb: torch.Tensor
+    predicted: torch.Tensor
+    truth: torch.Tensor
+    loss: float
+    time_step: torch.Tensor
+
+
 class DiffusionModule(pl.LightningModule):
     _val_loss: List[float]
     _train_loss: List[float]
     _pil: Dict[str, Image]
     _learning_rate: float
+    _total_steps: int
 
-    def __init__(self, config: DiffusionModuleConfig):
+    def __init__(self, config: DiffusionModuleConfig, total_steps: int = 1000):
         super().__init__()
         self.model = ContextUnet(
             in_channels=3,
@@ -43,6 +56,7 @@ class DiffusionModule(pl.LightningModule):
         self._learning_rate = (
             0.001 if config.learning_rate is None else config.learning_rate
         )
+        self._total_steps = total_steps
         self._val_loss = []
         # diffusion hyperparameters
         self._timesteps = 500
@@ -71,12 +85,13 @@ class DiffusionModule(pl.LightningModule):
         return x
 
     def training_step(self, batch, batch_idx):
-        loss = self._shared_eval(batch, batch_idx, "train")
-        self._train_loss.append(loss)
-        return loss
+        eval = self._shared_eval(batch, "train")
+        self._train_loss.append(eval.loss)
+        return eval.loss
 
     def on_train_epoch_start(self):
         self._train_loss.clear()
+        torch.manual_seed(time.time())
 
     def on_train_epoch_end(self):
         loss = torch.stack(self._train_loss).mean()
@@ -84,11 +99,13 @@ class DiffusionModule(pl.LightningModule):
 
     def on_validation_epoch_start(self):
         self._val_loss.clear()
+        torch.manual_seed(0)
 
     def validation_step(self, batch, batch_idx):
         # this is the validation loop
-        loss = self._shared_eval(batch, batch_idx, "val")
-        self._val_loss.append(loss)
+        eval = self._shared_eval(batch, "val")
+        self._val_loss.append(eval.loss)
+        self._log_images(eval, batch_idx)
         # self.log("val/loss", loss, sync_dist=True)
 
     def on_validation_epoch_end(self):
@@ -97,29 +114,30 @@ class DiffusionModule(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         # this is the test loop
-        loss = self._shared_eval(batch, batch_idx, "test")
-        self.log(DiffusionModuleMetrics.TEST_BATCH_LOSS, loss)
+        eval = self._shared_eval(batch, "test")
+        self.log(DiffusionModuleMetrics.TEST_BATCH_LOSS, eval.loss)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self._learning_rate, weight_decay=0.001
         )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer=optimizer, patience=5, factor=0.1, mode="min"
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            max_lr=0.01,
+            optimizer=optimizer,
+            total_steps=self._total_steps,
+            verbose=True,
         )
         return {
             "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "epoch",
-                "monitor": DiffusionModuleMetrics.TRAINING_EPOCH_LOSS,
-            },
+            "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
         }
 
-    def _shared_eval(self, batch, batch_idx, stage):
-        x, _ = batch
+    def get_model_hash(self):
+        summary = str(ModelSummary(self, max_depth=-1))
+        return hashlib.sha256(summary.encode("utf-8")).hexdigest()
 
-        tensorboard = self.logger.experiment
+    def _shared_eval(self, batch, stage) -> DiffusionEvaluation:
+        x, _ = batch
 
         # perturb data
         noise = torch.randn_like(x)
@@ -128,40 +146,35 @@ class DiffusionModule(pl.LightningModule):
 
         predictions = self(x_pert, t / self._timesteps)
 
-        self._log_images(batch_idx, stage, x, tensorboard, t, x_pert, predictions)
-
         loss = F.mse_loss(predictions, noise)
-        tensorboard[f"{stage}/batch/loss"].append(loss)
-        return loss
+        self.logger.experiment[f"{stage}/batch/loss"].append(loss)
+        return DiffusionEvaluation(
+            loss=loss, perturb=x_pert, truth=x, predicted=predictions, time_step=t
+        )
 
-    def _log_images(self, batch_idx, stage, x, tensorboard, t, x_pert, predictions):
+    def _log_images(self, evaluation: DiffusionEvaluation, batch_idx: int):
         image_names = ["pred", "truth", "perturb"]
-        if tensorboard.exists(f"{stage}_image_pred") and batch_idx == 0:
-            self._clear_image_logs(stage, tensorboard)
-            self._pil = {name: [] for name in image_names}
 
         if batch_idx % 10 == 0:
             images = {
-                "pred": predictions[0],
-                "truth": x[0],
-                "perturb": x_pert[0],
+                "pred": evaluation.predicted[0],
+                "truth": evaluation.perturb[0],
+                "perturb": evaluation.truth[0],
             }
-            for type, image in images.items():
-                self._log_image_tpye(stage, type, t, image)
 
-    def _log_image_tpye(self, stage, type, t, image):
+            for image_name in image_names:
+                self._publish_image(
+                    image_name,
+                    evaluation.time_step[0],
+                    images[image_name],
+                    batch_idx,
+                )
+
+    def _publish_image(self, type, t, image, batch_idx):
         pil = self._to_pil(image)
-        # self.logger.experiment[f"{stage}_image_{type}"].append(
-        #     pil,
-        #     name=f"t: {t}",
-        # )
-        if stage == "val":
-            self._pil[type] = pil
-
-    def _clear_image_logs(self, stage, tensorboard):
-        del tensorboard[f"{stage}_image_pred"]
-        del tensorboard[f"{stage}_image_truth"]
-        del tensorboard[f"{stage}_image_perturb"]
+        self.logger.experiment[f"val_image_{type}_{batch_idx}"].append(
+            pil, description=f"t: {t}"
+        )
 
     def _denoise_ddim(self, x, t, t_prev, pred_noise):
         ab = self.ab_t[t]
