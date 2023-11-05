@@ -16,8 +16,12 @@ class CustomPTDataset(Dataset):
 
     def __getitem__(self, idx):
         item_pt = self.files[idx]
-        item = torch.load(item_pt)
+        item, noise, t = torch.load(item_pt)
         if self.transform:
             item = self.transform(item)
         label = torch.tensor(0).to(torch.int64)
-        return item, label
+        print("item: " + item)
+        print("noise: " + noise)
+        print("t: " + t)
+
+        return item, noise, t, label

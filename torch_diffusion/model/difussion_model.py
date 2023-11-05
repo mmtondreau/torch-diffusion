@@ -34,7 +34,7 @@ class DiffusionEvaluation:
     perturb: torch.Tensor
     predicted: torch.Tensor
     truth: torch.Tensor
-    loss: float
+    loss: torch.Tensor
     time_step: torch.Tensor
 
 
@@ -59,9 +59,7 @@ class DiffusionModule(pl.LightningModule):
         self._total_steps = total_steps
         self._val_loss = []
         # diffusion hyperparameters
-        self._timesteps = 500
-        self._beta1 = 1e-4
-        self._beta2 = 0.02
+
         self.example_input_array = (
             torch.Tensor(16, 3, config.height, config.width),
             torch.Tensor(16, 1),
@@ -69,16 +67,11 @@ class DiffusionModule(pl.LightningModule):
         self._val_loss = []
         self._train_loss = []
         self._pil = {}
+        self._timesteps = 500
         self.save_hyperparameters()
 
     def setup(self, stage=None):
-        # construct DDPM noise schedule
-        self.b_t = (self._beta2 - self._beta1) * torch.linspace(
-            0, 1, self._timesteps + 1, device=self.device
-        ) + self._beta1
-        self.a_t = 1 - self.b_t
-        self.ab_t = torch.cumsum(self.a_t.log(), dim=0).exp()
-        self.ab_t[0] = 1
+        pass
 
     def forward(self, x, t):
         x = self.model(x, t)
@@ -137,19 +130,14 @@ class DiffusionModule(pl.LightningModule):
         return hashlib.sha256(summary.encode("utf-8")).hexdigest()
 
     def _shared_eval(self, batch, stage) -> DiffusionEvaluation:
-        x, _ = batch
+        x, noise, t, _ = batch
 
-        # perturb data
-        noise = torch.randn_like(x)
-        t = torch.randint(1, self._timesteps + 1, (x.shape[0],), device=self.device)
-        x_pert = self._perturb_input(x, t, noise)
-
-        predictions = self(x_pert, t / self._timesteps)
+        predictions = self(x, t / self._timesteps)
 
         loss = F.mse_loss(predictions, noise)
         self.logger.experiment[f"{stage}/batch/loss"].append(loss)
         return DiffusionEvaluation(
-            loss=loss, perturb=x_pert, truth=x, predicted=predictions, time_step=t
+            loss=loss, perturb=x, truth=noise, predicted=predictions, time_step=t
         )
 
     def _log_images(self, evaluation: DiffusionEvaluation, batch_idx: int):
@@ -184,14 +172,6 @@ class DiffusionModule(pl.LightningModule):
         dir_xt = (1 - ab_prev).sqrt() * pred_noise
 
         return x0_pred + dir_xt
-
-    # helper function: perturbs an image to a specified noise level
-    def _perturb_input(self, x, t, noise):
-        # print(f"t device: {t.device}, x device: {x.device}, ab_t device: {self.ab_t.device}")
-        return (
-            self.ab_t.sqrt()[t, None, None, None] * x
-            + (1 - self.ab_t[t, None, None, None]) * noise
-        )
 
     def _undo_normalize(self, image):
         image = (image * 0.5) + 0.5
