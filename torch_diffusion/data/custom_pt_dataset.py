@@ -20,8 +20,5 @@ class CustomPTDataset(Dataset):
         if self.transform:
             item = self.transform(item)
         label = torch.tensor(0).to(torch.int64)
-        print("item: " + item)
-        print("noise: " + noise)
-        print("t: " + t)
 
         return item, noise, t, label

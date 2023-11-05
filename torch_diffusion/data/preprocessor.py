@@ -58,12 +58,17 @@ class PreProcessor:
                     (self.target_height, self.target_width)
                 ),  # Resize the image
                 transforms.ToTensor(),  # Convert the image to a PyTorch tensor
+            ]
+        )
+
+        transform2 = transforms.Compose(
+            [
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),  # range [-1,1]
             ]
         )
 
         img = transform(img=img)
-
+        img = transform2(img=img)
         return img
 
     def process(self):
@@ -94,12 +99,12 @@ class PreProcessor:
 
     def _perturb_input(self, x):
         noise = torch.randn_like(x)
-        t = torch.randint(1, self._timesteps + 1, (x.shape[0],))
+        t = torch.randint(1, self._timesteps + 1, (1,))
         # print(f"t device: {t.device}, x device: {x.device}, ab_t device: {self.ab_t.device}")
         return (
             (
-                self.ab_t.sqrt()[t, None, None, None] * x
-                + (1 - self.ab_t[t, None, None, None]) * noise
+                self.ab_t.sqrt()[t, None, None] * x
+                + (1 - self.ab_t[t, None, None]) * noise
             ),
             noise,
             t,

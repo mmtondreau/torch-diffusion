@@ -136,7 +136,7 @@ def training(cfg: DictConfig):
         callbacks=callbacks,
         accumulate_grad_batches=config_accumulate_grad_batches(cfg),
         gradient_clip_val=config_gradient_clip_val(cfg),
-        enable_progress_bar=False,
+        enable_progress_bar=True,
         log_every_n_steps=5,
     )
     trainer.fit(model, datamodule=dm)
