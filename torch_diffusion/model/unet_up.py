@@ -5,16 +5,16 @@ from torch_diffusion.model.residual_conv_block import ResidualConvBlock
 
 
 class UnetUp(pl.LightningModule):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, kernel_size=3, upscale=2):
         super(UnetUp, self).__init__()
 
         # Create a list of layers for the upsampling block
         # The block consists of a ConvTranspose2d layer for upsampling, followed by two ResidualConvBlock layers
         layers = [
-            nn.ConvTranspose2d(in_channels, out_channels, 2, 2),
+            nn.ConvTranspose2d(in_channels, out_channels, upscale, upscale),
             nn.Dropout(0.2),
-            ResidualConvBlock(out_channels, out_channels),
-            ResidualConvBlock(out_channels, out_channels),
+            ResidualConvBlock(out_channels, out_channels, kernel_size=kernel_size),
+            ResidualConvBlock(out_channels, out_channels, kernel_size=kernel_size),
         ]
 
         # Use the layers to create a sequential model

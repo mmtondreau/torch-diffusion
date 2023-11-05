@@ -5,7 +5,11 @@ import torch
 
 class ResidualConvBlock(pl.LightningModule):
     def __init__(
-        self, in_channels: int, out_channels: int, is_res: bool = False
+        self,
+        in_channels: int,
+        out_channels: int,
+        is_res: bool = False,
+        kernel_size: int = 3,
     ) -> None:
         super().__init__()
 
@@ -18,7 +22,7 @@ class ResidualConvBlock(pl.LightningModule):
         # First convolutional layer
         self.conv1 = nn.Sequential(
             nn.Conv2d(
-                in_channels, out_channels, 3, 1, 1
+                in_channels, out_channels, kernel_size, 1, 1
             ),  # 3x3 kernel with stride 1 and padding 1
             nn.BatchNorm2d(out_channels),  # Batch normalization
             nn.GELU(),  # GELU activation function
@@ -27,7 +31,7 @@ class ResidualConvBlock(pl.LightningModule):
         # Second convolutional layer
         self.conv2 = nn.Sequential(
             nn.Conv2d(
-                out_channels, out_channels, 3, 1, 1
+                out_channels, out_channels, kernel_size, 1, 1
             ),  # 3x3 kernel with stride 1 and padding 1
             nn.BatchNorm2d(out_channels),  # Batch normalization
             nn.GELU(),  # GELU activation function

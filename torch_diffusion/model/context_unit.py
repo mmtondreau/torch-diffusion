@@ -24,8 +24,9 @@ class ContextUnet(pl.LightningModule):
         self.init_conv = ResidualConvBlock(in_channels, n_feat, is_res=True)
 
         # Initialize the down-sampling path of the U-Net with two levels
-        self.down1 = UnetDown(n_feat, n_feat)  # down1 #[10, 256, 96, 64]
-        self.down2 = UnetDown(n_feat, 2 * n_feat)  # down2 #[10, 256, 48, 32]
+        self.down1 = UnetDown(n_feat, n_feat, 7)  # down1 #[10, 256, 96, 64]
+        self.down2 = UnetDown(n_feat, 2 * n_feat, 5)  # down2 #[10, 512z, 48, 32]
+        self.down3 = UnetDown(2 * n_feat, 4 * n_feat, 3)  # down2 #[10, 256, 48, 32]
 
         # original: self.to_vec = nn.Sequential(nn.AvgPool2d(7), nn.GELU())
         feature_kernel = (height // 4, width // 4)
@@ -34,16 +35,17 @@ class ContextUnet(pl.LightningModule):
         )  # [10, 256, 12, 8]
 
         # Embed the timestep and context labels with a one-layer fully connected neural network
-        self.timeembed1 = EmbedFC(1, 2 * n_feat)
-        self.timeembed2 = EmbedFC(1, 1 * n_feat)
-        self.contextembed1 = EmbedFC(n_cfeat, 2 * n_feat)
-        self.contextembed2 = EmbedFC(n_cfeat, 1 * n_feat)
+        self.timeembed1 = EmbedFC(1, 4 * n_feat)
+        self.timeembed2 = EmbedFC(1, 2 * n_feat)
+        self.timeembed3 = EmbedFC(1, 1 * n_feat)
+        # self.contextembed1 = EmbedFC(n_cfeat, 2 * n_feat)
+        # self.contextembed2 = EmbedFC(n_cfeat, 1 * n_feat)
 
         # Initialize the up-sampling path of the U-Net with three levels
         self.up0 = nn.Sequential(
             nn.ConvTranspose2d(
-                2 * n_feat,
-                2 * n_feat,
+                4 * n_feat,
+                4 * n_feat,
                 feature_kernel,
                 feature_kernel,
             ),  # up-sample
@@ -51,8 +53,9 @@ class ContextUnet(pl.LightningModule):
             nn.ReLU(),
         )  # (48,32) [10, 256, 12, 8]
 
-        self.up1 = UnetUp(4 * n_feat, n_feat)
-        self.up2 = UnetUp(2 * n_feat, n_feat)
+        self.up1 = UnetUp(8 * n_feat, n_feat, kernel_size=3)
+        self.up2 = UnetUp(4 * n_feat, n_feat, kernel_size=5)
+        self.up3 = UnetUp(2 * n_feat, n_feat, kernel_size=7)
 
         # Initialize the final convolutional layers to map to the same number of channels as the input image
         self.out = nn.Sequential(
@@ -82,9 +85,10 @@ class ContextUnet(pl.LightningModule):
         down1 = self.down1(x)  # [10, 256, 8, 8]
         # print(f"down1 {down1.shape}")
         down2 = self.down2(down1)  # [10, 256, 4, 4]
+        down3 = self.down3(down2)  # [10, 256, 4, 4]
         # print(f"down2 {down2.shape}")
         # convert the feature maps to a vector and apply an activation
-        hiddenvec = self.to_vec(down2)  # [16, 512, 1, 1]
+        hiddenvec = self.to_vec(down3)  # [16, 512, 1, 1]
         # print(f"hiddenvec {hiddenvec.shape}")
 
         # mask out context if context_mask == 1
@@ -92,15 +96,16 @@ class ContextUnet(pl.LightningModule):
             c = torch.zeros(x.shape[0], self.n_cfeat).to(x)
 
         # embed context and timestep
-        cemb1 = self.contextembed1(c).view(
-            -1, self.n_feat * 2, 1, 1
-        )  # (batch, 2*n_feat, 1,1)
+        # cemb1 = self.contextembed1(c).view(
+        #     -1, self.n_feat * 2, 1, 1
+        # )  # (batch, 2*n_feat, 1,1)
         # print(f"cemb1 {cemb1.shape}")
-        temb1 = self.timeembed1(t).view(-1, self.n_feat * 2, 1, 1)
+        temb1 = self.timeembed1(t).view(-1, self.n_feat * 4, 1, 1)
         # print(f"temb1 {temb1.shape}")
-        cemb2 = self.contextembed2(c).view(-1, self.n_feat, 1, 1)
+        # cemb2 = self.contextembed2(c).view(-1, self.n_feat, 1, 1)
         # print(f"cemb2 {cemb2.shape}")
-        temb2 = self.timeembed2(t).view(-1, self.n_feat, 1, 1)
+        temb2 = self.timeembed2(t).view(-1, self.n_feat * 2, 1, 1)
+        temb3 = self.timeembed3(t).view(-1, self.n_feat * 1, 1, 1)
         # print(f"temb2 {temb2.shape}")
         # print(
         #     f"uunet forward: cemb1 {cemb1.shape}. temb1 {temb1.shape}, cemb2 {cemb2.shape}. temb2 {temb2.shape}"
@@ -108,7 +113,8 @@ class ContextUnet(pl.LightningModule):
 
         up1 = self.up0(hiddenvec)  # [16, 512, 48, 48]
         # print(f"up1 {up1.shape}")
-        up2 = self.up1(cemb1 * up1 + temb1, down2)  # add and multiply embeddings
-        up3 = self.up2(cemb2 * up2 + temb2, down1)
-        out = self.out(torch.cat((up3, x), 1))
+        up2 = self.up1(up1 + temb1, down3)  # add and multiply embeddings
+        up3 = self.up2(up2 + temb2, down2)
+        up4 = self.up3(up3 + temb3, down1)
+        out = self.out(torch.cat((up4, x), 1))
         return out
