@@ -20,8 +20,9 @@ class PreProcessor:
         output_dir="../preprocessed_data",
         target_width=128,
         target_height=192,
+        samples_per_image=3
     ) -> None:
-        self._samples_per_image = 3
+        self._samples_per_image = samples_per_image
         self.target_height = target_height
         self.target_width = target_width
         self.data_dir = data_dir

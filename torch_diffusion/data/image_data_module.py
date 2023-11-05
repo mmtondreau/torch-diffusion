@@ -20,6 +20,7 @@ class ImageDataModule(pl.LightningDataModule):
         num_workers=2,
         validation_split=0.2,
         test_split=0.1,
+        samples_per_image=5,
     ):
         super().__init__()
         self.data_dir = os.path.join(data_dir, f"{width}x{height}")

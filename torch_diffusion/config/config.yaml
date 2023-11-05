@@ -8,6 +8,7 @@ preprocess:
   enabled: ${oc.env:PREPROCESS_ENABLED, False}
   output_dir: ${oc.env:PREPROCESS_OUTPUT_DIR, "../preprocessed_data"}
   input_dir: ${oc.env:PREPROCESS_INPUT_DIR, "../data"}
+  samples_per_image: ${oc.env:PREPROCESS_SAMPLES_PER_IMAGE, "5"}
 slack:
   token: ${oc.env:SLACK_TOKEN, null}
   channels:
