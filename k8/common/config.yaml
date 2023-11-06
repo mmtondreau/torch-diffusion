@@ -7,4 +7,4 @@ data:
   model.width: "32"
   data_dir: "../preprocessed_data"
   training.max_epochs: "100"
-  training.batch_size: "400"
+  training.batch_size: "256"

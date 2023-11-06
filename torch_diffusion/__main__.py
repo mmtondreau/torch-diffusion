@@ -23,6 +23,8 @@ import hydra
 from datetime import datetime
 from dataclasses import asdict
 
+from torch_diffusion.model.inference import Inference, InferenceConfig
+
 torch.set_float32_matmul_precision("medium")
 
 
@@ -72,16 +74,11 @@ def training(cfg: DictConfig):
         height=cfg.model.height,
     )
 
-    model_config = DiffusionModuleConfig(
-        learning_rate=float(cfg.training.learning_rate),
-        features=int(cfg.model.features),
-        height=int(cfg.model.height),
-        width=int(cfg.model.width),
-    )
+    model_config = get_model_config(cfg)
 
     model_hash = get_model_hash(model_config)
 
-    model_ckpt_file = f"{model_hash}:{datetime.now().isoformat()}:{{{DiffusionModuleMetrics.VALIDATION_EPOCH_LOSS}:.2f}}"
+    model_ckpt_file = f"{model_hash}:{datetime.now().isoformat()}"
     checkpoint_file = None
     if cfg.training.checkpoint_dir is not None:
         checkpoint_file = find_latest_checkpoint(cfg, model_hash)
@@ -142,6 +139,15 @@ def training(cfg: DictConfig):
     neptune_logger.log_model_summary(model=model, max_depth=-1)
 
 
+def get_model_config(cfg):
+    return DiffusionModuleConfig(
+        learning_rate=float(cfg.training.learning_rate),
+        features=int(cfg.model.features),
+        height=int(cfg.model.height),
+        width=int(cfg.model.width),
+    )
+
+
 def config_gradient_clip_val(cfg):
     return float(
         cfg.training.gradient_clip_val
@@ -158,6 +164,23 @@ def config_accumulate_grad_batches(cfg):
     )
 
 
+def inference(cfg: DictConfig):
+    model_config = get_model_config(cfg)
+    model_hash = get_model_hash(model_config)
+    checkpoint_file = find_latest_checkpoint(cfg, model_hash)
+    Inference(
+        InferenceConfig(
+            checkpoint_file=checkpoint_file,
+            height=int(cfg.model.height),
+            width=int(cfg.model.width),
+            features=int(cfg.model.features),
+            timesteps=int(cfg.diffusion.timesteps),
+            beta1=float(cfg.diffusion.beta1),
+            beta2=float(cfg.diffusion.beta2),
+        )
+    ).infer()
+
+
 @hydra.main(config_name="config.yaml", config_path="config", version_base=None)
 def main(cfg):
     if cfg.preprocess.enabled == "True":
@@ -168,6 +191,8 @@ def main(cfg):
             target_width=int(cfg.model.width),
             samples_per_image=int(cfg.preprocess.samples_per_image),
         ).process()
+    elif cfg.inference.enabled == "True":
+        inference(cfg)
     else:
         training(cfg)
 
