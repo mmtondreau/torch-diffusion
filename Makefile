@@ -1,10 +1,12 @@
 
 TRAINING_IMAGE=diffusion-training
 PREPROCESS_IMAGE=diffusion-preprocess
+INFERENCE_IMAGE=diffusion-inference
 RDOCKER_REGISTRY=registry.tonberry.org/tonberry
 VERSION=latest
 TRAINING_JOB_NAME=diffusion-training-job
 PREPROCESS_JOB_NAME=diffusion-preprocess-job
+INFERENCE_JOB_NAME=diffusion-inference-job
 
 .PHONY: build-training
 build-training: 
