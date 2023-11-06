@@ -43,9 +43,8 @@ class DiffusionModule(pl.LightningModule):
     _train_loss: List[float]
     _pil: Dict[str, Image]
     _learning_rate: float
-    _total_steps: int
 
-    def __init__(self, config: DiffusionModuleConfig, total_steps: int = 1000):
+    def __init__(self, config: DiffusionModuleConfig):
         super().__init__()
         self.model = ContextUnet(
             in_channels=3,
@@ -56,7 +55,6 @@ class DiffusionModule(pl.LightningModule):
         self._learning_rate = (
             0.001 if config.learning_rate is None else config.learning_rate
         )
-        self._total_steps = total_steps
         self._val_loss = []
         # diffusion hyperparameters
 
@@ -117,7 +115,8 @@ class DiffusionModule(pl.LightningModule):
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             max_lr=0.01,
             optimizer=optimizer,
-            total_steps=self._total_steps,
+            steps_per_epoch=len(self.trainer.datamodule.train_dataloader()),
+            epochs=self.trainer.max_epochs,
             verbose=True,
         )
         return {
@@ -149,7 +148,6 @@ class DiffusionModule(pl.LightningModule):
                 "truth": evaluation.perturb[0],
                 "perturb": evaluation.truth[0],
             }
-
             for image_name in image_names:
                 self._publish_image(
                     image_name,
@@ -163,6 +161,7 @@ class DiffusionModule(pl.LightningModule):
         self.logger.experiment[f"val_image_{type}_{batch_idx}"].append(
             pil, description=f"t: {t}"
         )
+        self._pil[type] = pil
 
     def _denoise_ddim(self, x, t, t_prev, pred_noise):
         ab = self.ab_t[t]

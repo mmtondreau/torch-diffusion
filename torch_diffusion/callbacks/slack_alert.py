@@ -35,12 +35,12 @@ class SlackAlert(Callback):
             f"{self._model_name} Completed Epoch: {epoch}, {self._monitor}: {metric}",
         )
 
-        # self._slack_client.send_images(
-        #     SlackChannel.MONITORING,
-        #     images={
-        #         "predicted": pl_module._pil["pred"],
-        #         "perturb": pl_module._pil["perturb"],
-        #         "truth": pl_module._pil["truth"],
-        #     },
-        #     parent_ts=ts,
-        # )
+        self._slack_client.send_images(
+            SlackChannel.MONITORING,
+            images={
+                "predicted": pl_module._pil["pred"],
+                "perturb": pl_module._pil["perturb"],
+                "truth": pl_module._pil["truth"],
+            },
+            parent_ts=ts,
+        )

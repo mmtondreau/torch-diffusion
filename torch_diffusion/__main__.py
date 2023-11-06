@@ -79,8 +79,6 @@ def training(cfg: DictConfig):
         width=int(cfg.model.width),
     )
 
-    max_epochs = int(cfg.training.max_epochs)
-    total_steps = dm.train_len * max_epochs // batch_size
     model_hash = get_model_hash(model_config)
 
     model_ckpt_file = f"{model_hash}:{datetime.now().isoformat()}:{{{DiffusionModuleMetrics.VALIDATION_EPOCH_LOSS}:.2f}}"
@@ -89,10 +87,10 @@ def training(cfg: DictConfig):
         checkpoint_file = find_latest_checkpoint(cfg, model_hash)
         if checkpoint_file != None:
             model = DiffusionModule.load_from_checkpoint(
-                checkpoint_file, config=model_config, total_steps=total_steps
+                checkpoint_file, config=model_config
             )
     if checkpoint_file is None:
-        model = DiffusionModule(config=model_config, total_steps=total_steps)
+        model = DiffusionModule(config=model_config)
 
     callbacks = [
         ModelCheckpoint(
@@ -131,7 +129,7 @@ def training(cfg: DictConfig):
         logger=neptune_logger,
         devices=1,
         accelerator="gpu",
-        max_epochs=max_epochs,
+        max_epochs=int(cfg.training.max_epochs),
         callbacks=callbacks,
         accumulate_grad_batches=config_accumulate_grad_batches(cfg),
         gradient_clip_val=config_gradient_clip_val(cfg),
