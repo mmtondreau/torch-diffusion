@@ -85,7 +85,7 @@ def training(cfg: DictConfig):
     checkpoint_file = None
     if cfg.training.checkpoint_dir is not None:
         checkpoint_file = find_latest_checkpoint(cfg, model_hash)
-        if checkpoint_file != None:
+        if checkpoint_file is not None:
             model = DiffusionModule.load_from_checkpoint(
                 checkpoint_file, config=model_config
             )
