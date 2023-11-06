@@ -168,7 +168,7 @@ def main(cfg):
             output_dir=cfg.preprocess.output_dir,
             target_height=int(cfg.model.height),
             target_width=int(cfg.model.width),
-            samples_per_image=int(cfg.model.samples_per_image),
+            samples_per_image=int(cfg.preprocess.samples_per_image),
         ).process()
     else:
         training(cfg)

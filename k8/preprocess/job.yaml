@@ -22,6 +22,8 @@ spec:
           env:
             - name: PREPROCESS_ENABLED
               value: "True"
+            - name: PREPROCESS_SAMPLES_PER_IMAGE
+              value: "10"
             - name: PREPROCESS_OUTPUT_DIR
               valueFrom:
                 configMapKeyRef:
