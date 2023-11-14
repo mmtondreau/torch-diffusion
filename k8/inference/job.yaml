@@ -20,6 +20,8 @@ spec:
               memory: "5Gi"
               cpu: "4"
           env:
+            - name: INFERENCE_ENABLED
+              value: True
             - name: MODEL_HEIGHT
               valueFrom:
                 configMapKeyRef:

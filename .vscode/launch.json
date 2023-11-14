@@ -34,6 +34,18 @@
         "PREPROCESS_INPUT_DIR": "./data",
         "PREPROCESS_ENABLED": "True"
       }
+    },
+    {
+      "name": "Inference",
+      "type": "python",
+      "request": "launch",
+      "module": "torch_diffusion",
+      "justMyCode": true,
+      "env": {
+        "MODEL_HEIGHT": "48",
+        "MODEL_WIDTH": "32",
+        "INFERENCE_ENABLED": "True"
+      }
     }
   ]
 }

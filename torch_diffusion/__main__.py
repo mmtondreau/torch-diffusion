@@ -58,8 +58,10 @@ def find_latest_checkpoint(cfg: DictConfig, model_hash: str):
         return None
 
 
-def get_model_hash(model_config):
-    return DiffusionModule(config=model_config).get_model_hash()
+def get_model_hash(config):
+    return DiffusionModule(
+        config=config, model_config={"features": 512}
+    ).get_model_hash()
 
 
 def training(cfg: DictConfig):
@@ -87,7 +89,7 @@ def training(cfg: DictConfig):
                 checkpoint_file, config=model_config
             )
     if checkpoint_file is None:
-        model = DiffusionModule(config=model_config)
+        model = DiffusionModule(config=model_config, model_config={"features": 512})
 
     callbacks = [
         ModelCheckpoint(
@@ -142,7 +144,6 @@ def training(cfg: DictConfig):
 def get_model_config(cfg):
     return DiffusionModuleConfig(
         learning_rate=float(cfg.training.learning_rate),
-        features=int(cfg.model.features),
         height=int(cfg.model.height),
         width=int(cfg.model.width),
     )
