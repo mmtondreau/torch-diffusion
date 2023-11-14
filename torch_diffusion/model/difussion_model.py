@@ -1,3 +1,4 @@
+from math import ceil
 from typing import Dict, List
 import pytorch_lightning as pl
 import torch
@@ -112,12 +113,23 @@ class DiffusionModule(pl.LightningModule):
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self._learning_rate, weight_decay=0.001
         )
+        # steps_per_epoch = len(self.trainer.datamodule.train_dataloader())
+        max_epochs = self.trainer.max_epochs
+        total_steps_per_batch = ceil(
+            self.trainer.datamodule.train_len
+            / (
+                self.trainer.datamodule.batch_size
+                * self.trainer.accumulate_grad_batches
+            )
+        )
+        print(
+            f"total_steps_per_batch=[{total_steps_per_batch}], train_len = [{self.trainer.datamodule.train_len}], batch_size = [{self.trainer.datamodule.batch_size}], accumulate_grad_batches =[{self.trainer.accumulate_grad_batches}]"
+        )
+
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             max_lr=0.01,
             optimizer=optimizer,
-            steps_per_epoch=len(self.trainer.datamodule.train_dataloader()),
-            epochs=self.trainer.max_epochs,
-            verbose=True,
+            total_steps=total_steps_per_batch * max_epochs,
         )
         return {
             "optimizer": optimizer,

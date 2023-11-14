@@ -6,5 +6,5 @@ data:
   model.height: "48"
   model.width: "32"
   data_dir: "../preprocessed_data"
-  training.max_epochs: "100"
-  training.batch_size: "256"
+  training.max_epochs: "50"
+  training.batch_size: "32"

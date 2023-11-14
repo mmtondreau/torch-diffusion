@@ -20,7 +20,7 @@ training:
   num_workers: ${oc.env:TRAINING_NUM_WORKERS, 2}
   checkpoint_dir: ${oc.env:TRAINING_CHECKPOINT_DIR, "./model_checkpoints" }
   checkpoint: ${oc.env:TRAINING_CHECKPOINT_DIR, null}
-  accumulate_grad_batches: ${oc.env:TRAINING_ACCUMULATION_GRAD_BATCHES, 7}
+  accumulate_grad_batches: ${oc.env:TRAINING_ACCUMULATION_GRAD_BATCHES, 4}
   gradient_clip_val: ${oc.env:TRAINING_GRADIENT_VAL, 0.5}
   stochastic_weight_averaging: ${oc.env:STOCHASTIC_WEIGHT_AVERAGING, 1e-2}
   validation_split: ${oc.env:TRAINING_VALIDATION_SPLIT, 0.2}
