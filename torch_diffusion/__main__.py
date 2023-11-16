@@ -60,7 +60,7 @@ def find_latest_checkpoint(cfg: DictConfig, model_hash: str):
 
 def get_model_hash(config):
     return DiffusionModule(
-        config=config, model_config={"features": 512}
+        config=config, model_config={"features": 256, "scale": [3, 3, 3]}
     ).get_model_hash()
 
 
@@ -89,7 +89,9 @@ def training(cfg: DictConfig):
                 checkpoint_file, config=model_config
             )
     if checkpoint_file is None:
-        model = DiffusionModule(config=model_config, model_config={"features": 512})
+        model = DiffusionModule(
+            config=model_config, model_config={"features": 256, "scale": [3, 3, 3]}
+        )
 
     callbacks = [
         ModelCheckpoint(

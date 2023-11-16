@@ -10,7 +10,7 @@ class EmbedFC(pl.LightningModule):
         dimensionality input_dim to an embedding space of dimensionality emb_dim.
         """
         self.input_dim = input_dim
-
+        self.output_dim = emb_dim
         # define the layers for the network
         layers = [
             nn.Linear(input_dim, emb_dim),

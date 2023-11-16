@@ -5,7 +5,7 @@ from torch_diffusion.model.embedfc import EmbedFC
 from torch_diffusion.model.residual_conv_block import ResidualConvBlock
 from torch_diffusion.model.unet_down import UnetDown
 from torch_diffusion.model.unet_up import UnetUp
-from typing import TypedDict
+from typing import List, TypedDict
 
 
 class ContextUnitConfig(TypedDict):
@@ -26,37 +26,39 @@ class ContextUnet(pl.LightningModule):
 
         self.init_conv = ResidualConvBlock(in_channels, self.n_feat, is_res=True)
 
-        self.down = nn.ModuleList()
-        for layer, kernel in enumerate(self.scale):
-            self.down.append(
-                UnetDown(
-                    (2**layer) * self.n_feat, (2 ** (layer + 1)) * self.n_feat, kernel
-                )
-            )
-
+        input_dim = (2**num_layers) * self.n_feat
         feature_kernel = (height // (2**num_layers), width // (2**num_layers))
-        self.to_vec = nn.Sequential(nn.AvgPool2d(feature_kernel), nn.GELU())
-
-        timeembed = []
-        for layer, _ in enumerate(self.scale):
-            self.timeembed.append(EmbedFC(1, (2**layer) * self.n_feat))
-        timeembed.reverse()
-        self.timeembed = nn.ModuleList(timeembed)
-
         self.up0 = nn.Sequential(
             nn.ConvTranspose2d(
-                4 * self.n_feat,
-                4 * self.n_feat,
+                input_dim,
+                input_dim,
                 feature_kernel,
                 feature_kernel,
             ),
-            nn.GroupNorm(8, 4 * self.n_feat),
+            nn.GroupNorm(8, input_dim),
             nn.ReLU(),
         )
 
-        self.up1 = UnetUp(8 * self.n_feat, 2 * self.n_feat, kernel_size=3)
-        self.up2 = UnetUp(4 * self.n_feat, self.n_feat, kernel_size=3)
-        self.up3 = UnetUp(2 * self.n_feat, self.n_feat, kernel_size=3)
+        self.down = nn.ModuleList()
+        self.timeembed = nn.ModuleList()
+        self.up = nn.ModuleList()
+        for layer, kernel in enumerate(self.scale):
+            down = UnetDown(
+                (2**layer) * self.n_feat, (2 ** (layer + 1)) * self.n_feat, kernel
+            )
+            embed = EmbedFC(1, 2 ** (layer + 1) * self.n_feat)
+
+            up = UnetUp(
+                (2 ** (layer + 2)) * self.n_feat,
+                (2**layer) * self.n_feat,
+                kernel_size=kernel,
+            )
+
+            self.timeembed.append(embed)
+            self.down.append(down)
+            self.up.append(up)
+
+        self.to_vec = nn.Sequential(nn.AvgPool2d(feature_kernel), nn.GELU())
 
         self.out = nn.Sequential(
             nn.Conv2d(2 * self.n_feat, self.n_feat, 3, 1, 1),
@@ -71,18 +73,23 @@ class ContextUnet(pl.LightningModule):
         c : (batch, n_classes)    : context label
         """
         x = self.init_conv(x)
-        down1 = self.down1(x)
-        down2 = self.down2(down1)
-        down3 = self.down3(down2)
-        hiddenvec = self.to_vec(down3)
+        x_orig = x
 
-        temb1 = self.timeembed1(t).view(-1, self.n_feat * 4, 1, 1)
-        temb2 = self.timeembed2(t).view(-1, self.n_feat * 2, 1, 1)
-        temb3 = self.timeembed3(t).view(-1, self.n_feat * 1, 1, 1)
+        down_out = []
+        for module in self.down:
+            x = module(x)
+            down_out.append(x)
 
-        up1 = self.up0(hiddenvec)
-        up2 = self.up1(up1 + temb1, down3)
-        up3 = self.up2(up2 + temb2, down2)
-        up4 = self.up3(up3 + temb3, down1)
-        out = self.out(torch.cat((up4, x), 1))
+        hiddenvec = self.to_vec(x)
+
+        temb_out = []
+        for index, module in enumerate(self.timeembed):
+            temb_out.append(module(t).view(-1, self.n_feat * (2 ** (index + 1)), 1, 1))
+
+        x = self.up0(hiddenvec)
+
+        for module in reversed(self.up):
+            x = module(x + temb_out.pop(), down_out.pop())
+
+        out = self.out(torch.cat((x, x_orig), 1))
         return out
