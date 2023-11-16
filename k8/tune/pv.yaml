@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: diffusion-tune-job-volume
+  namespace: torch
+spec:
+  storageClassName: ""
+  volumeMode: Filesystem
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  local:
+    path: /mnt/sd/torch/
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - jetson00

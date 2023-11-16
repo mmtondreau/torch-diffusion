@@ -4,6 +4,7 @@ import glob
 
 from torch_diffusion.data.image_data_module import ImageDataModule
 from torch_diffusion.data.preprocessor import PreProcessor
+from torch_diffusion.model.context_unit import ContextUnitConfig, ContextUnitLayerCOnfig
 from torch_diffusion.model.difussion_model import (
     DiffusionModule,
     DiffusionModuleConfig,
@@ -27,6 +28,16 @@ from torch_diffusion.model.inference import Inference, InferenceConfig
 
 torch.set_float32_matmul_precision("medium")
 
+MODEL_CONFIG = ContextUnitConfig(
+    features=64,
+    layers=[
+        ContextUnitLayerCOnfig(features=256, kernel_size=9),
+        ContextUnitLayerCOnfig(features=512, kernel_size=5),
+        ContextUnitLayerCOnfig(features=1024, kernel_size=3),
+        ContextUnitLayerCOnfig(features=2048, kernel_size=3),
+    ],
+)
+
 
 def setup_logger(cfg: DictConfig):
     return NeptuneLogger(
@@ -38,7 +49,7 @@ def setup_logger(cfg: DictConfig):
     )
 
 
-MODEL_CKPT_DIRPATH = "model_checkpoints/"
+MODEL_CKPT_DIRPATH = "model_checkpoints"
 
 
 def find_latest_checkpoint(cfg: DictConfig, model_hash: str):
@@ -59,9 +70,7 @@ def find_latest_checkpoint(cfg: DictConfig, model_hash: str):
 
 
 def get_model_hash(config):
-    return DiffusionModule(
-        config=config, model_config={"features": 256, "scale": [3, 3, 3]}
-    ).get_model_hash()
+    return DiffusionModule(config=config, model_config=MODEL_CONFIG).get_model_hash()
 
 
 def training(cfg: DictConfig):
@@ -90,7 +99,8 @@ def training(cfg: DictConfig):
             )
     if checkpoint_file is None:
         model = DiffusionModule(
-            config=model_config, model_config={"features": 256, "scale": [3, 3, 3]}
+            config=model_config,
+            model_config=MODEL_CONFIG,
         )
 
     callbacks = [

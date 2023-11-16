@@ -18,11 +18,14 @@ class ResidualConvBlock(pl.LightningModule):
 
         # Flag for whether or not to use residual connection
         self.is_res = is_res
+        if (kernel_size - 1) % 2 != 0:
+            raise ValueError("kernel size must be odd")
 
+        padding = (kernel_size - 1) // 2
         # First convolutional layer
         self.conv1 = nn.Sequential(
             nn.Conv2d(
-                in_channels, out_channels, kernel_size, 1, 1
+                in_channels, out_channels, kernel_size, stride=1, padding=padding
             ),  # 3x3 kernel with stride 1 and padding 1
             nn.BatchNorm2d(out_channels),  # Batch normalization
             nn.GELU(),  # GELU activation function
@@ -31,7 +34,7 @@ class ResidualConvBlock(pl.LightningModule):
         # Second convolutional layer
         self.conv2 = nn.Sequential(
             nn.Conv2d(
-                out_channels, out_channels, kernel_size, 1, 1
+                out_channels, out_channels, kernel_size, stride=1, padding=padding
             ),  # 3x3 kernel with stride 1 and padding 1
             nn.BatchNorm2d(out_channels),  # Batch normalization
             nn.GELU(),  # GELU activation function

@@ -5,6 +5,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Tune",
+      "type": "python",
+      "request": "launch",
+      "program": "torch_diffusion/tune.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "Training",
       "type": "python",
       "request": "launch",

@@ -2,11 +2,13 @@
 TRAINING_IMAGE=diffusion-training
 PREPROCESS_IMAGE=diffusion-preprocess
 INFERENCE_IMAGE=diffusion-inference
+TUNE_IMAGE=diffusion-tune
 RDOCKER_REGISTRY=registry.tonberry.org/tonberry
 VERSION=latest
 TRAINING_JOB_NAME=diffusion-training-job
 PREPROCESS_JOB_NAME=diffusion-preprocess-job
 INFERENCE_JOB_NAME=diffusion-inference-job
+TUNE_JOB_NAME=diffusion-tune-job
 
 .PHONY: build-training
 build-training: 
@@ -94,4 +96,33 @@ submit-inference: delete-job-inference push-inference
 inference-logs:
 	kubectl get pods -l job-name=${INFERENCE_JOB_NAME} -o json | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[-1].metadata.name' | xargs kubectl logs -f
 	# kubectl get pods -l job-name=${INFERENCE_JOB_NAME} | tail -n -1 | awk '{print $$1}' | xargs kubectl logs -f 
+
+
+.PHONY: build-tune
+build-tune: 
+	docker build -t ${TUNE_IMAGE}:${VERSION} -f Dockerfile.tune .
+
+.PHONY: tag-tune
+tag-inference: build-tune
+	docker tag ${TUNE_IMAGE}:${VERSION} ${RDOCKER_REGISTRY}/${TUNE_IMAGE}:${VERSION}
+
+.PHONY: push-tune
+push-inference: tag-tune
+	docker push ${RDOCKER_REGISTRY}/${TUNE_IMAGE}:${VERSION}
+
+.PHONY: delete-job-tune
+delete-job-tune: 
+	kubectl delete job ${TUNE_JOB_NAME} --ignore-not-found=true 
+
+.PHONY: submit-tune
+submit-tune: delete-job-tune push-tune
+	kubectl apply -f k8/common \
+	&& kubectl apply -f k8/tune \
+	&& sleep 5 \
+	&& kubectl get pods -l job-name=${TUNE_JOB_NAME} -o json | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[-1].metadata.name' | xargs kubectl logs -f
+
+.PHONY: tune-logs
+tune-logs:
+	kubectl get pods -l job-name=${TUNE_JOB_NAME} -o json | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[-1].metadata.name' | xargs kubectl logs -f
+	# kubectl get pods -l job-name=${TUNE_JOB_NAME} | tail -n -1 | awk '{print $$1}' | xargs kubectl logs -f 
 
