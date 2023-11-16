@@ -29,7 +29,7 @@ class Inference:
     def __init__(self, config: InferenceConfig) -> None:
         self._config = config
         self._model = DiffusionModule.load_from_checkpoint(config.checkpoint_file)
-        self.device = torch.device(
+        self._device = torch.device(
             "cuda:0" if torch.cuda.is_available() else torch.device("cpu")
         )
         self.init_noise_schedule()
@@ -38,7 +38,7 @@ class Inference:
         self,
     ):
         samples, intermediate = self.sample_ddpm(1)
-        self.save_sample(samples)
+        self.save_sample(samples[0])
         self.save_gif(intermediate)
 
     def init_noise_schedule(self):
@@ -122,7 +122,7 @@ class Inference:
             if i % save_rate == 0 or i == self._config.timesteps or i < 8:
                 intermediate.append(samples.detach().cpu().numpy())
 
-        intermediate = np.stack(intermediate)
+        intermediate = intermediate
         return samples, intermediate
 
     def _undo_normalize(self, image):
@@ -131,11 +131,12 @@ class Inference:
 
     def _to_pil(self, image) -> Image:
         first_image = self._undo_normalize(image)
+        first_image = first_image
         first_image_pil = transforms.ToPILImage()(first_image)
         return first_image_pil
 
     def save_gif(self, intermediate: List[torch.Tensor]):
-        pils: List[Image] = list(map(self._to_pil, intermediate))
+        pils: List[Image] = list(map(lambda x: self._to_pil(x[0]), intermediate))
         pils[0].save(
             "output.gif",
             save_all=True,

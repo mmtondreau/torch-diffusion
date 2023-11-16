@@ -2,7 +2,7 @@ from math import ceil
 from typing import Dict, List
 import pytorch_lightning as pl
 import torch
-from torch_diffusion.model.context_unit import ContextUnet
+from torch_diffusion.model.context_unit import ContextUnitConfig, ContextUnet
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from dataclasses import dataclass
@@ -25,7 +25,6 @@ class DiffusionModuleMetrics:
 @dataclass
 class DiffusionModuleConfig:
     learning_rate: float = 0.001
-    features: int = 512
     height: int = 128
     width: int = 192
 
@@ -45,11 +44,11 @@ class DiffusionModule(pl.LightningModule):
     _pil: Dict[str, Image]
     _learning_rate: float
 
-    def __init__(self, config: DiffusionModuleConfig):
+    def __init__(self, config: DiffusionModuleConfig, model_config: ContextUnitConfig):
         super().__init__()
         self.model = ContextUnet(
             in_channels=3,
-            n_feat=config.features,
+            config=model_config,
             width=config.width,
             height=config.height,
         )

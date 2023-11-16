@@ -5,72 +5,91 @@ from torch_diffusion.model.embedfc import EmbedFC
 from torch_diffusion.model.residual_conv_block import ResidualConvBlock
 from torch_diffusion.model.unet_down import UnetDown
 from torch_diffusion.model.unet_up import UnetUp
+from typing import List, TypedDict
+
+
+class ContextUnitConfig(TypedDict):
+    features: int
+    scale: list[int]
 
 
 class ContextUnet(pl.LightningModule):
-    def __init__(self, in_channels, n_feat=256, n_cfeat=10, height=192, width=128):
+    def __init__(self, in_channels, config: ContextUnitConfig, height=192, width=128):
         super(ContextUnet, self).__init__()
 
         self.in_channels = in_channels
-        self.n_feat = n_feat
-        self.n_cfeat = n_cfeat
+        self.n_feat = config["features"]
+        self.scale = config["scale"]
+        num_layers = len(self.scale)
         self.h = height
         self.w = width
 
-        self.init_conv = ResidualConvBlock(in_channels, n_feat, is_res=True)
+        self.init_conv = ResidualConvBlock(in_channels, self.n_feat, is_res=True)
 
-        self.down1 = UnetDown(n_feat, n_feat, 3)
-        self.down2 = UnetDown(n_feat, 2 * n_feat, 3)
-        self.down3 = UnetDown(2 * n_feat, 4 * n_feat, 3)
-
-        feature_kernel = (height // 8, width // 8)
-        self.to_vec = nn.Sequential(nn.AvgPool2d(feature_kernel), nn.GELU())
-
-        self.timeembed1 = EmbedFC(1, 4 * n_feat)
-        self.timeembed2 = EmbedFC(1, 2 * n_feat)
-        self.timeembed3 = EmbedFC(1, 1 * n_feat)
-
+        input_dim = (2**num_layers) * self.n_feat
+        feature_kernel = (height // (2**num_layers), width // (2**num_layers))
         self.up0 = nn.Sequential(
             nn.ConvTranspose2d(
-                4 * n_feat,
-                4 * n_feat,
+                input_dim,
+                input_dim,
                 feature_kernel,
                 feature_kernel,
             ),
-            nn.GroupNorm(8, 4 * n_feat),
+            nn.GroupNorm(8, input_dim),
             nn.ReLU(),
         )
 
-        self.up1 = UnetUp(8 * n_feat, 2 * n_feat, kernel_size=3)
-        self.up2 = UnetUp(4 * n_feat, n_feat, kernel_size=3)
-        self.up3 = UnetUp(2 * n_feat, n_feat, kernel_size=3)
+        self.down = nn.ModuleList()
+        self.timeembed = nn.ModuleList()
+        self.up = nn.ModuleList()
+        for layer, kernel in enumerate(self.scale):
+            down = UnetDown(
+                (2**layer) * self.n_feat, (2 ** (layer + 1)) * self.n_feat, kernel
+            )
+            embed = EmbedFC(1, 2 ** (layer + 1) * self.n_feat)
+
+            up = UnetUp(
+                (2 ** (layer + 2)) * self.n_feat,
+                (2**layer) * self.n_feat,
+                kernel_size=kernel,
+            )
+
+            self.timeembed.append(embed)
+            self.down.append(down)
+            self.up.append(up)
+
+        self.to_vec = nn.Sequential(nn.AvgPool2d(feature_kernel), nn.GELU())
 
         self.out = nn.Sequential(
-            nn.Conv2d(2 * n_feat, n_feat, 3, 1, 1),
-            nn.GroupNorm(8, n_feat),
+            nn.Conv2d(2 * self.n_feat, self.n_feat, 3, 1, 1),
+            nn.GroupNorm(8, self.n_feat),
             nn.ReLU(),
-            nn.Conv2d(n_feat, self.in_channels, 3, 1, 1),
+            nn.Conv2d(self.n_feat, self.in_channels, 3, 1, 1),
         )
 
     def forward(self, x, t, c=None):
         """
         x : (batch, n_feat, h, w) : input image
-        t : (batch, n_cfeat)      : time step
         c : (batch, n_classes)    : context label
         """
         x = self.init_conv(x)
-        down1 = self.down1(x)
-        down2 = self.down2(down1)
-        down3 = self.down3(down2)
-        hiddenvec = self.to_vec(down3)
+        x_orig = x
 
-        temb1 = self.timeembed1(t).view(-1, self.n_feat * 4, 1, 1)
-        temb2 = self.timeembed2(t).view(-1, self.n_feat * 2, 1, 1)
-        temb3 = self.timeembed3(t).view(-1, self.n_feat * 1, 1, 1)
+        down_out = []
+        for module in self.down:
+            x = module(x)
+            down_out.append(x)
 
-        up1 = self.up0(hiddenvec)
-        up2 = self.up1(up1 + temb1, down3)
-        up3 = self.up2(up2 + temb2, down2)
-        up4 = self.up3(up3 + temb3, down1)
-        out = self.out(torch.cat((up4, x), 1))
+        hiddenvec = self.to_vec(x)
+
+        temb_out = []
+        for index, module in enumerate(self.timeembed):
+            temb_out.append(module(t).view(-1, self.n_feat * (2 ** (index + 1)), 1, 1))
+
+        x = self.up0(hiddenvec)
+
+        for module in reversed(self.up):
+            x = module(x + temb_out.pop(), down_out.pop())
+
+        out = self.out(torch.cat((x, x_orig), 1))
         return out
