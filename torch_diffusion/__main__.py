@@ -138,8 +138,8 @@ def training(cfg: DictConfig):
     neptune_logger.experiment["signature"] = model_hash
     trainer = pl.Trainer(
         logger=neptune_logger,
-        devices=1,
-        accelerator="gpu",
+        devices="auto",
+        accelerator="auto",
         max_epochs=int(cfg.training.max_epochs),
         callbacks=callbacks,
         accumulate_grad_batches=config_accumulate_grad_batches(cfg),

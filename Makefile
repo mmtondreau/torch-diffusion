@@ -103,11 +103,11 @@ build-tune:
 	docker build -t ${TUNE_IMAGE}:${VERSION} -f Dockerfile.tune .
 
 .PHONY: tag-tune
-tag-inference: build-tune
+tag-tune: build-tune
 	docker tag ${TUNE_IMAGE}:${VERSION} ${RDOCKER_REGISTRY}/${TUNE_IMAGE}:${VERSION}
 
 .PHONY: push-tune
-push-inference: tag-tune
+push-tune: tag-tune
 	docker push ${RDOCKER_REGISTRY}/${TUNE_IMAGE}:${VERSION}
 
 .PHONY: delete-job-tune

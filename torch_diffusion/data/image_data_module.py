@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 import pytorch_lightning as pl
 
 from torch.utils.data import DataLoader
@@ -13,14 +14,15 @@ logger = logging.getLogger(__name__)
 class ImageDataModule(pl.LightningDataModule):
     def __init__(
         self,
-        width=128,
-        height=192,
+        width: int = 128,
+        height: int = 192,
         data_dir: str = "../preprocessed_data",
         batch_size: int = 16,
-        num_workers=2,
-        validation_split=0.2,
-        test_split=0.1,
-        samples_per_image=5,
+        num_workers: int = 2,
+        validation_split: float = 0.2,
+        test_split: float = 0.1,
+        samples_per_image: int = 5,
+        truncate: Optional[int] = None,
     ):
         super().__init__()
         self.data_dir = os.path.join(data_dir, f"{width}x{height}")
@@ -30,7 +32,7 @@ class ImageDataModule(pl.LightningDataModule):
         self.test_split = test_split
         self.num_workers = num_workers
         # load on main thread so data gets shared across processes.
-        dataset = CustomPTDataset(self.data_dir, transform=None)
+        dataset = CustomPTDataset(self.data_dir, transform=truncate)
         # Calculate the size of splits
         self.total_len = len(dataset)
         self.val_len = int(self.validation_split * self.total_len)

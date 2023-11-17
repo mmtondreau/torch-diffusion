@@ -3,5 +3,5 @@ ARG PYTHON_MODULE=torch_diffusion
 RUN conda run -n torch pip install neptune slack-sdk hydra-core
 WORKDIR /var/torch/torch-diffusion
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "torch", \
-    "python", "torch_diffusion/tune.py"] 
-#ENTRYPOINT ["ls", "-l"]
+    "python", "-m", "torch.distributed.run", "-m",  "torch_diffusion.tune"] 
+# ENTRYPOINT ["sleep", "100"]

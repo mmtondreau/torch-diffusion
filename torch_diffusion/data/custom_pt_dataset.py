@@ -1,3 +1,4 @@
+from typing import Optional
 import torch
 
 import os
@@ -6,9 +7,11 @@ import glob
 
 
 class CustomPTDataset(Dataset):
-    def __init__(self, dir, transform=None):
+    def __init__(self, dir, transform=None, truncate: Optional[int] = None):
         self.dir = dir
         self.files = glob.glob(os.path.join(dir, "*.pt"))
+        if truncate is not None:
+            self.files = self.files[:truncate]
         self.transform = transform
 
     def __len__(self):
