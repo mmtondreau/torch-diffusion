@@ -8,3 +8,4 @@ data:
   data_dir: "../preprocessed_data"
   training.max_epochs: "50"
   training.batch_size: "32"
+  truncate: "2000"

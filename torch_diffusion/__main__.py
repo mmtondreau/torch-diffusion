@@ -34,7 +34,6 @@ MODEL_CONFIG = ContextUnitConfig(
         ContextUnitLayerCOnfig(features=256, kernel_size=9),
         ContextUnitLayerCOnfig(features=512, kernel_size=5),
         ContextUnitLayerCOnfig(features=1024, kernel_size=3),
-        ContextUnitLayerCOnfig(features=2048, kernel_size=3),
     ],
 )
 
@@ -83,6 +82,7 @@ def training(cfg: DictConfig):
         data_dir=cfg.preprocess.output_dir,
         width=cfg.model.width,
         height=cfg.model.height,
+        truncate=2000,
     )
 
     model_config = get_model_config(cfg)

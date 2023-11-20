@@ -32,7 +32,7 @@ class ImageDataModule(pl.LightningDataModule):
         self.test_split = test_split
         self.num_workers = num_workers
         # load on main thread so data gets shared across processes.
-        dataset = CustomPTDataset(self.data_dir, transform=truncate)
+        dataset = CustomPTDataset(self.data_dir, truncate=truncate)
         # Calculate the size of splits
         self.total_len = len(dataset)
         self.val_len = int(self.validation_split * self.total_len)
